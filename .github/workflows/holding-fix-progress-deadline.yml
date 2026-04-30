@@ -1,0 +1,47 @@
+# ============================================================================
+# >>> HOLDING — FIX progressDeadlineSeconds dos Deployments <<<
+# ============================================================================
+#
+# [2026-04-30] Default do k8s é 600s (10min). Margem apertada se db:chatwoot_
+# prepare rodar migration grande. Sobe pra 1800s (30min) — buffer confortável
+# pra migrations + asset boot. Ainda aborta deploy travado, só não aborta
+# por slow boot legítimo.
+#
+# Idempotente. workflow_dispatch.
+# ============================================================================
+
+name: holding · fix progressDeadlineSeconds (1800s)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Patch progressDeadlineSeconds
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 3m
+          script: |
+            set -e
+            NS=chatwoot
+            VAL=1800
+
+            for D in chatwoot-web chatwoot-worker; do
+              echo "--- patch $D progressDeadlineSeconds=$VAL ---"
+              kubectl patch deploy "$D" -n "$NS" \
+                -p "{\"spec\":{\"progressDeadlineSeconds\":$VAL}}"
+              GOT=$(kubectl get deploy "$D" -n "$NS" \
+                -o jsonpath='{.spec.progressDeadlineSeconds}')
+              if [ "$GOT" = "$VAL" ]; then
+                echo "[ok] $D = $GOT"
+              else
+                echo "[FAIL] $D = $GOT (esperado $VAL)"
+                exit 1
+              fi
+            done
