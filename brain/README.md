@@ -7,7 +7,10 @@ Ao trabalhar nesse repo, sempre ler `context.md` aqui ANTES de mexer em código.
 ## Índice
 
 - `context.md` — overview do projeto: stack, environments, dev workflow, integração com os 7 sistemas da holding.
-- `fork-policy.md` — _(a criar quando primeira decisão durável for tomada)_: como rebasear do upstream, onde isolar customizações, quais paths evitar.
+- `fork-policy.md` — política de fork: lazy cherry-pick (não rebase), zero monkey-patch em código de domínio, módulo interno em arquivos novos. Decisão Founder 2026-04-30.
+- `crm-research.md` — pesquisa de precedentes externos: Woofed CRM, KanbanWoot, LeadSquared PR #11284, Tegrus blog Dashboard App.
+- `crm-codebase-patterns.md` — padrões internos do Chatwoot pra módulo novo: multi-tenancy comportamental, FlagShihTzu, event dispatcher, JBuilder, Vuex pattern.
+- `crm-pipeline-spec.md` — spec consolidada do CRM (caminho A interno): modelo de dados, ~30 endpoints REST, fasing 5-8 semanas, integração Matrix one-way v1.
 
 ## Convenção
 
