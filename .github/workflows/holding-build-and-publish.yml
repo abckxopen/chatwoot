@@ -167,6 +167,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           envs: VERSION
+          command_timeout: 20m
           script: |
             set -e
             IMAGE="ghcr.io/abckxopen/chatwoot:${VERSION}"
@@ -218,6 +219,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 15m
           script: |
             echo "Deploy ou health check falhou — revertendo web + worker"
             kubectl rollout undo -n chatwoot deploy/chatwoot-web
