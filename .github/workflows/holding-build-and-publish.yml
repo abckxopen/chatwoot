@@ -127,3 +127,102 @@ jobs:
       - name: Log published tags
         run: |
           echo "{\"event\":\"holding.ci.published\",\"tags\":\"${{ steps.meta.outputs.tags }}\",\"sha\":\"${{ github.sha }}\"}"
+
+  # ============================================================================
+  # [2026-04-30] DEPLOY pro CORE (K3s da holding) — só roda em push tag v*.
+  # Pattern reutilizado de mentoringbase/mentoringbase: SSH into manager-01
+  # como cicd, rodar kubectl set image em web + worker (mesma imagem) +
+  # initContainer db-migrate. Depois validar rollout, health check, rollback
+  # automático em falha.
+  #
+  # Setup já feito no CORE:
+  # - cicd@manager-01 com kubectl cluster-admin
+  # - GH secrets DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY
+  # - ghcr-secret no ns chatwoot pra puxar imagem privada
+  #
+  # Tag schema enforced via regex pra evitar shell injection (ver step Validate).
+  # ============================================================================
+  deploy-core:
+    needs: build-and-publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERSION: ${{ github.ref_name }}
+    steps:
+      - name: Validate tag format (anti-injection)
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Aceita v[N].[N].[N] e variações com sufixo (v1.2.3-rc.1, v0.1.0-start-fork)
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$ ]]; then
+            echo "Refusing unsupported tag format: $TAG"
+            exit 1
+          fi
+
+      - name: Deploy to CORE via SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: VERSION
+          command_timeout: 20m
+          script: |
+            set -e
+            IMAGE="ghcr.io/abckxopen/chatwoot:${VERSION}"
+
+            echo "=========================================="
+            echo "  DEPLOY: Chatwoot (holding fork)"
+            echo "  Image:     ${IMAGE}"
+            echo "  Namespace: chatwoot"
+            echo "=========================================="
+
+            # Web: container chatwoot-web + initContainer db-migrate (mesma imagem,
+            # roda bundle exec rails db:chatwoot_prepare antes do app)
+            kubectl set image -n chatwoot deploy/chatwoot-web \
+              chatwoot-web="${IMAGE}" db-migrate="${IMAGE}"
+
+            # Worker: container chatwoot-worker (sem initContainer, mesma imagem,
+            # roda bundle exec sidekiq)
+            kubectl set image -n chatwoot deploy/chatwoot-worker \
+              chatwoot-worker="${IMAGE}"
+
+            kubectl rollout status -n chatwoot deploy/chatwoot-web --timeout=15m
+            kubectl rollout status -n chatwoot deploy/chatwoot-worker --timeout=10m
+
+            echo ""
+            echo "--- Pods after rollout ---"
+            kubectl get pods -n chatwoot \
+              -l 'app in (chatwoot-web,chatwoot-worker)' \
+              -o custom-columns='POD:.metadata.name,STATUS:.status.phase,IMAGE:.spec.containers[0].image'
+
+      - name: Health check chat.abckx.com.br
+        run: |
+          # Tolerância: 12 tentativas a cada 10s (2 min total). Chatwoot reload
+          # pode demorar pós-rollout, especialmente se rodar migrations grandes.
+          for i in $(seq 1 12); do
+            if curl -sf -o /dev/null -w "%{http_code}" https://chat.abckx.com.br/auth/sign_in | grep -qE "^(200|302)$"; then
+              echo "Health check passed"
+              exit 0
+            fi
+            echo "Attempt $i/12 failed, retrying..."
+            sleep 10
+          done
+          echo "Health check failed after 12 attempts"
+          exit 1
+
+      - name: Auto-rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            echo "Deploy ou health check falhou — revertendo web + worker"
+            kubectl rollout undo -n chatwoot deploy/chatwoot-web
+            kubectl rollout undo -n chatwoot deploy/chatwoot-worker
+            kubectl rollout status -n chatwoot deploy/chatwoot-web --timeout=5m
+            kubectl rollout status -n chatwoot deploy/chatwoot-worker --timeout=5m
