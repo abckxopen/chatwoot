@@ -1,0 +1,94 @@
+# ============================================================================
+# >>> HOLDING — FIX imagePullSecrets pro ghcr.io privado <<<
+# ============================================================================
+#
+# [2026-04-30] Cluster k3s não tinha ghcr-secret wired no SA/Deploy do ns
+# chatwoot. Isso fez v0.2.1 falhar (ImagePullBackOff) porque ghcr é privado.
+# v0.1.0 funciona só porque tá cacheada no worker-03 (imagePullPolicy=
+# IfNotPresent). Sem fix, qualquer tag nova falha.
+#
+# FIX em 2 camadas (defesa em profundidade):
+#   1. SA default do ns ganha imagePullSecrets → todos pods novos usam auto
+#   2. Deploys chatwoot-web/worker ganham imagePullSecrets explícito → não
+#      depende do SA inheritance
+#
+# Idempotente: rodar várias vezes não estraga nada (kubectl patch é merge).
+# Trigger: workflow_dispatch (manual).
+# ============================================================================
+
+name: holding · fix imagePullSecrets (ghcr-secret)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Patch SA + Deployments com ghcr-secret
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 5m
+          script: |
+            set -e
+            NS=chatwoot
+            SECRET=ghcr-secret
+
+            echo "=========================================="
+            echo "  FIX imagePullSecrets — ns=$NS secret=$SECRET"
+            echo "=========================================="
+
+            # Pre-check: secret existe?
+            if ! kubectl get secret "$SECRET" -n "$NS" >/dev/null 2>&1; then
+              echo "ERRO: secret '$SECRET' não existe no ns '$NS'"
+              exit 1
+            fi
+            echo "[ok] secret $SECRET existe"
+
+            # 1. SA default
+            echo ""
+            echo "--- 1. Patch SA default (imagePullSecrets) ---"
+            kubectl patch sa default -n "$NS" \
+              -p '{"imagePullSecrets":[{"name":"'"$SECRET"'"}]}'
+            kubectl get sa default -n "$NS" -o jsonpath='{.imagePullSecrets}{"\n"}'
+
+            # 2. Deploys (chatwoot-web + chatwoot-worker)
+            for DEPLOY in chatwoot-web chatwoot-worker; do
+              echo ""
+              echo "--- 2. Patch deploy/$DEPLOY ---"
+              kubectl patch deploy "$DEPLOY" -n "$NS" --type=strategic \
+                -p '{"spec":{"template":{"spec":{"imagePullSecrets":[{"name":"'"$SECRET"'"}]}}}}'
+              kubectl get deploy "$DEPLOY" -n "$NS" \
+                -o jsonpath='{.spec.template.spec.imagePullSecrets}{"\n"}'
+            done
+
+            # 3. Verifica
+            echo ""
+            echo "--- 3. VERIFY ---"
+            for DEPLOY in chatwoot-web chatwoot-worker; do
+              IPS=$(kubectl get deploy "$DEPLOY" -n "$NS" \
+                -o jsonpath='{.spec.template.spec.imagePullSecrets[*].name}')
+              if [ "$IPS" = "$SECRET" ]; then
+                echo "[ok] $DEPLOY → imagePullSecrets=$IPS"
+              else
+                echo "[FAIL] $DEPLOY → imagePullSecrets=$IPS (esperado: $SECRET)"
+                exit 1
+              fi
+            done
+            SA_IPS=$(kubectl get sa default -n "$NS" \
+              -o jsonpath='{.imagePullSecrets[*].name}')
+            if [ "$SA_IPS" = "$SECRET" ]; then
+              echo "[ok] sa/default → imagePullSecrets=$SA_IPS"
+            else
+              echo "[FAIL] sa/default → imagePullSecrets=$SA_IPS"
+              exit 1
+            fi
+
+            echo ""
+            echo "=========================================="
+            echo "  FIX OK — proximo deploy de tag nova vai pull com auth"
+            echo "=========================================="
