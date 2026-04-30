@@ -14,6 +14,7 @@
 |---|---|---|
 | `holding-build-and-publish.yml` | push em tag `v*` ou `develop` | build imagem CE + push ghcr + (em tag) deploy automático |
 | `holding-fix-imagepull.yml` | manual (workflow_dispatch) | patcha SA + deploys com `ghcr-secret`. **Idempotente** — re-rodar não estraga |
+| `holding-fix-progress-deadline.yml` | manual (workflow_dispatch) | sobe `progressDeadlineSeconds` dos deploys pra 1800s. Idempotente |
 | `holding-cluster-diagnose.yml` | manual (workflow_dispatch) | read-only: pods/events/logs/imagePullSecrets/pull policy. Usar quando deploy falhar |
 
 Secrets GH usados (já configurados): `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY` (chave SSH pro manager-01 do k3s).
@@ -58,8 +59,21 @@ Se aparecer namespace novo (staging, hml, etc), aplicar mesmo padrão. Considera
 4. Se for `imagePullBackOff` de novo → `holding-fix-imagepull.yml` (idempotente, sempre seguro rodar)
 
 ### Limites conhecidos
-- `progressDeadlineSeconds` no Deployment = 600s default. Se o pod precisa mais que 10min pra ficar Ready (db migration grande, asset build), aumentar via `kubectl edit deploy ... -n chatwoot` adicionando `spec.progressDeadlineSeconds: 1800`. **NÃO MUDADO ainda** — assumimos boot < 10min é OK.
+- `progressDeadlineSeconds` = **1800s (30min)** após PR #6. Buffer confortável pra migrations grandes.
 - `command_timeout: 20m` no `appleboy/ssh-action` (PR #2). Cobre rollout + 5min de buffer.
+
+## Tech debt conhecido (decidido não-arrumar agora)
+
+Triagem do Founder 2026-04-30:
+
+| # | Item | Decisão | Owner |
+|---|---|---|---|
+| 1 | Manifest source-of-truth desconhecido (patches drift se infra reaplicar) | Infra | Sergio |
+| 2 | Pod pinado em worker-03 via nodeSelector + PVC RWO local-path (SPOF) | Infra (longo prazo: RWX) | Sergio |
+| 3 | `imagePullPolicy: IfNotPresent` mascara retag de mesma versão | Não fixar — caso raro, conserta se ocorrer | — |
+| 4 | Token do `ghcr-secret` sem rotação documentada | Não-meu | Sergio |
+| 5 | `progressDeadlineSeconds=600s` apertado | **FIXADO** PR #6 → 1800s | Denise |
+| 6 | Probe bate em `/auth/sign_in` (não `/healthz`) | Over — não fazer | — |
 
 ## Tags emitidas até agora
 
