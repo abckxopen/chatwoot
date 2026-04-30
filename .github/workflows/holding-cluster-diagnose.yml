@@ -1,0 +1,100 @@
+# ============================================================================
+# >>> HOLDING — DIAGNÓSTICO READ-ONLY DO CLUSTER (chatwoot ns) <<<
+# ============================================================================
+#
+# [2026-04-30] Workflow só de leitura pra investigar pod failure (deploy
+# v0.2.1 caiu em "exceeded its progress deadline" — pod novo não fica ready).
+# Reusa secrets DEPLOY_HOST/USER/SSH_KEY já configurados pro deploy. Roda
+# kubectl get/describe/logs/events. NÃO altera estado do cluster.
+#
+# Trigger: manual (workflow_dispatch) — não roda em push.
+# ============================================================================
+
+name: holding · cluster diagnose (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tail_lines:
+        description: 'Linhas de log por pod'
+        required: false
+        default: '200'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: SSH + kubectl read-only
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          command_timeout: 5m
+          envs: TAIL
+          script: |
+            set +e
+            TAIL="${{ inputs.tail_lines }}"
+
+            echo "=================================================="
+            echo "  CLUSTER DIAGNOSE — chatwoot namespace"
+            echo "  Host: $(hostname)"
+            echo "  Date: $(date -Iseconds)"
+            echo "=================================================="
+
+            echo ""
+            echo "--- 1. PODS (chatwoot ns) ---"
+            kubectl get pods -n chatwoot -o wide
+
+            echo ""
+            echo "--- 2. DEPLOYMENTS ---"
+            kubectl get deploy -n chatwoot -o wide
+
+            echo ""
+            echo "--- 3. ROLLOUT HISTORY: chatwoot-web ---"
+            kubectl rollout history -n chatwoot deploy/chatwoot-web
+
+            echo ""
+            echo "--- 4. ROLLOUT HISTORY: chatwoot-worker ---"
+            kubectl rollout history -n chatwoot deploy/chatwoot-worker
+
+            echo ""
+            echo "--- 5. EVENTS (chatwoot ns, ultimos 50, ordenados) ---"
+            kubectl get events -n chatwoot --sort-by=.lastTimestamp | tail -50
+
+            echo ""
+            echo "--- 6. DESCRIBE DEPLOYMENT chatwoot-web (resumo) ---"
+            kubectl describe deploy/chatwoot-web -n chatwoot | tail -80
+
+            echo ""
+            echo "--- 7. DESCRIBE PODS chatwoot-web ---"
+            for p in $(kubectl get pods -n chatwoot -l app=chatwoot-web -o name 2>/dev/null); do
+              echo ">>> $p"
+              kubectl describe -n chatwoot "$p" | tail -60
+              echo ""
+            done
+
+            echo ""
+            echo "--- 8. LOGS chatwoot-web (tail=$TAIL) ---"
+            for p in $(kubectl get pods -n chatwoot -l app=chatwoot-web -o name 2>/dev/null); do
+              echo ">>> $p [chatwoot-web container]"
+              kubectl logs -n chatwoot "$p" -c chatwoot-web --tail="$TAIL" 2>&1 | tail -"$TAIL"
+              echo ""
+              echo ">>> $p [db-migrate initContainer]"
+              kubectl logs -n chatwoot "$p" -c db-migrate --tail="$TAIL" 2>&1 | tail -"$TAIL"
+              echo ""
+            done
+
+            echo ""
+            echo "--- 9. ghcr-secret (existencia + age) ---"
+            kubectl get secret ghcr-secret -n chatwoot -o custom-columns='NAME:.metadata.name,TYPE:.type,AGE:.metadata.creationTimestamp' 2>&1
+
+            echo ""
+            echo "--- 10. IMAGE PULL CHECK (lista ImagePullSecrets do deploy) ---"
+            kubectl get deploy chatwoot-web -n chatwoot -o jsonpath='{.spec.template.spec.imagePullSecrets[*]}' 2>&1
+            echo ""
+
+            echo "=================================================="
+            echo "  END DIAGNOSE"
+            echo "=================================================="
