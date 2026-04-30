@@ -91,10 +91,27 @@ jobs:
             kubectl get secret ghcr-secret -n chatwoot -o custom-columns='NAME:.metadata.name,TYPE:.type,AGE:.metadata.creationTimestamp' 2>&1
 
             echo ""
-            echo "--- 10. IMAGE PULL CHECK (lista ImagePullSecrets do deploy) ---"
-            kubectl get deploy chatwoot-web -n chatwoot -o jsonpath='{.spec.template.spec.imagePullSecrets[*]}' 2>&1
-            echo ""
+            echo "--- 10a. IMAGE PULL SECRETS no deploy chatwoot-web ---"
+            kubectl get deploy chatwoot-web -n chatwoot -o yaml | grep -A5 imagePullSecrets || echo "(no imagePullSecrets field)"
 
+            echo ""
+            echo "--- 10b. IMAGE PULL SECRETS no deploy chatwoot-worker ---"
+            kubectl get deploy chatwoot-worker -n chatwoot -o yaml | grep -A5 imagePullSecrets || echo "(no imagePullSecrets field)"
+
+            echo ""
+            echo "--- 10c. IMAGE PULL SECRETS no ServiceAccount default ---"
+            kubectl get sa default -n chatwoot -o yaml | grep -A5 imagePullSecrets || echo "(no imagePullSecrets in SA default)"
+
+            echo ""
+            echo "--- 11. PULL POLICY chatwoot-web ---"
+            kubectl get deploy chatwoot-web -n chatwoot -o jsonpath='{.spec.template.spec.containers[*].name}{" / "}{.spec.template.spec.containers[*].imagePullPolicy}{"\n"}'
+            kubectl get deploy chatwoot-web -n chatwoot -o jsonpath='{.spec.template.spec.initContainers[*].name}{" / "}{.spec.template.spec.initContainers[*].imagePullPolicy}{"\n"}'
+
+            echo ""
+            echo "--- 12. IMAGENS já cacheadas no worker-03 (chatwoot/*) ---"
+            ssh -o StrictHostKeyChecking=no worker-03 'sudo crictl images 2>/dev/null | grep -E "chatwoot|REPOSITORY"' 2>&1 || echo "(failed to query worker-03 from manager)"
+
+            echo ""
             echo "=================================================="
             echo "  END DIAGNOSE"
             echo "=================================================="
