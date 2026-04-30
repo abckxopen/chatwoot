@@ -34,10 +34,14 @@ module Holding
       self.table_name = 'crm_pipelines'
 
       belongs_to :account
-
-      # has_many :stages, ... , has_many :opportunities, ...  ← chega na próxima migration
-      # has_many :crm_stages, class_name: 'Holding::Crm::Stage', dependent: :destroy_async, foreign_key: :crm_pipeline_id, inverse_of: :pipeline
-      # Comentado por enquanto — model Stage chega no próximo commit da Phase 0.
+      has_many :stages, class_name: 'Holding::Crm::Stage',
+                        foreign_key: :crm_pipeline_id,
+                        inverse_of: :pipeline,
+                        dependent: :destroy_async
+      has_many :opportunities, class_name: 'Holding::Crm::Opportunity',
+                               foreign_key: :crm_pipeline_id,
+                               inverse_of: :pipeline,
+                               dependent: :restrict_with_error
 
       validates :name, presence: true, uniqueness: { scope: :account_id }
       validates :default_pipeline, inclusion: { in: [true, false] }

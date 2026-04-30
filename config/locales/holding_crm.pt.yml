@@ -1,0 +1,8 @@
+# [2026-04-30] Locale isolado do CRM da holding. Arquivo separado pra
+# zero conflito com `pt.yml` upstream — Rails I18n carrega todos `*.yml`
+# em `config/locales/`. Padrão segue `devise.pt.yml` upstream.
+pt:
+  errors:
+    messages:
+      only_one_default_per_account: "só 1 pipeline default por conta"
+      won_and_lost_cannot_coexist: "stage não pode ser ao mesmo tempo ganho e perdido"
