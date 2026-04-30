@@ -6,3 +6,5 @@ pt:
     messages:
       only_one_default_per_account: "só 1 pipeline default por conta"
       won_and_lost_cannot_coexist: "stage não pode ser ao mesmo tempo ganho e perdido"
+    crm:
+      feature_disabled: "Módulo CRM não está ativado para esta conta. Solicite ao administrador."

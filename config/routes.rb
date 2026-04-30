@@ -437,6 +437,30 @@ Rails.application.routes.draw do
             end
           end
         end
+
+        # >>> HOLDING CRM ROUTES <<<
+        # [2026-04-30] Routes do módulo CRM da holding (fork abckxopen).
+        # Bloco isolado pra simplificar resolução de conflito em cherry-pick
+        # do upstream — política em brain/fork-policy.md. NÃO espalhar
+        # routes CRM em outros pontos do arquivo; tudo aqui dentro.
+        # Endpoints servem `Api::V1::Accounts::Crm*Controller` (em
+        # `app/controllers/api/v1/accounts/crm_*_controller.rb`).
+        resources :crm_pipelines, only: %i[index show create update destroy] do
+          resources :crm_stages, only: %i[index create update destroy], path: 'stages'
+        end
+
+        resources :crm_companies, only: %i[index show create update destroy]
+
+        resources :crm_opportunities, only: %i[index show create update destroy] do
+          member do
+            patch :move_to_stage
+            patch :discard
+          end
+          resources :crm_activities, only: %i[index create update destroy], path: 'activities' do
+            member { patch :complete }
+          end
+        end
+        # <<< HOLDING CRM ROUTES >>>
       end
     end
 
