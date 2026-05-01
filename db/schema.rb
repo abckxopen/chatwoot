@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_01_154529) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -73,6 +73,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
     t.integer "status", default: 0
     t.jsonb "internal_attributes", default: {}, null: false
     t.jsonb "settings", default: {}
+    t.boolean "holding_crm_enabled", default: false, null: false
     t.index ["status"], name: "index_accounts_on_status"
   end
 
@@ -381,11 +382,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
     t.integer "sync_status"
     t.datetime "last_synced_at"
     t.datetime "last_sync_attempted_at"
+    t.index ["account_id", "sync_status"], name: "index_captain_documents_on_account_id_and_sync_status"
     t.index ["account_id"], name: "index_captain_documents_on_account_id"
     t.index ["assistant_id", "external_link"], name: "index_captain_documents_on_assistant_id_and_external_link", unique: true
     t.index ["assistant_id"], name: "index_captain_documents_on_assistant_id"
     t.index ["status"], name: "index_captain_documents_on_status"
-    t.index ["account_id", "sync_status"], name: "index_captain_documents_on_account_id_and_sync_status"
   end
 
   create_table "captain_inboxes", force: :cascade do |t|
@@ -745,6 +746,102 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
     t.index ["user_id"], name: "index_copilot_threads_on_user_id"
   end
 
+  create_table "crm_activities", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "crm_opportunity_id", null: false
+    t.integer "kind", default: 4, null: false
+    t.string "subject", null: false
+    t.text "description"
+    t.datetime "due_at"
+    t.datetime "completed_at"
+    t.bigint "assignee_id"
+    t.string "matrix_task_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "due_at"], name: "idx_crm_activities_open_due", where: "(completed_at IS NULL)"
+    t.index ["account_id"], name: "index_crm_activities_on_account_id"
+    t.index ["assignee_id", "completed_at"], name: "idx_crm_activities_assignee_completed"
+    t.index ["crm_opportunity_id", "due_at"], name: "idx_crm_activities_opp_due"
+    t.index ["crm_opportunity_id"], name: "index_crm_activities_on_crm_opportunity_id"
+  end
+
+  create_table "crm_companies", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.string "domain"
+    t.string "industry"
+    t.string "size"
+    t.jsonb "additional_attributes", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "domain"], name: "idx_crm_companies_account_domain"
+    t.index ["account_id", "name"], name: "idx_crm_companies_account_name", unique: true
+    t.index ["account_id"], name: "index_crm_companies_on_account_id"
+  end
+
+  create_table "crm_opportunities", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "crm_pipeline_id", null: false
+    t.bigint "crm_stage_id", null: false
+    t.bigint "contact_id"
+    t.bigint "crm_company_id"
+    t.bigint "assignee_id"
+    t.string "name", null: false
+    t.text "description"
+    t.decimal "value", precision: 15, scale: 2
+    t.string "currency", default: "BRL", null: false
+    t.date "expected_close_date"
+    t.integer "probability", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "won_at"
+    t.datetime "lost_at"
+    t.text "lost_reason"
+    t.string "source"
+    t.datetime "discarded_at"
+    t.jsonb "custom_attributes", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "status"], name: "idx_crm_opportunities_account_status"
+    t.index ["account_id"], name: "idx_crm_opportunities_account_active", where: "(discarded_at IS NULL)"
+    t.index ["account_id"], name: "index_crm_opportunities_on_account_id"
+    t.index ["assignee_id", "status"], name: "idx_crm_opportunities_assignee_status"
+    t.index ["contact_id"], name: "idx_crm_opportunities_contact"
+    t.index ["crm_company_id"], name: "idx_crm_opportunities_company"
+    t.index ["crm_pipeline_id", "crm_stage_id"], name: "idx_crm_opportunities_pipeline_stage"
+    t.index ["crm_pipeline_id"], name: "index_crm_opportunities_on_crm_pipeline_id"
+    t.index ["crm_stage_id"], name: "index_crm_opportunities_on_crm_stage_id"
+    t.index ["expected_close_date"], name: "idx_crm_opportunities_close_date"
+  end
+
+  create_table "crm_pipelines", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.text "description"
+    t.boolean "default_pipeline", default: false, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "name"], name: "index_crm_pipelines_on_account_id_and_name", unique: true
+    t.index ["account_id"], name: "index_crm_pipelines_on_account_id"
+  end
+
+  create_table "crm_stages", force: :cascade do |t|
+    t.bigint "crm_pipeline_id", null: false
+    t.bigint "account_id", null: false
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.string "color"
+    t.boolean "won", default: false, null: false
+    t.boolean "lost", default: false, null: false
+    t.jsonb "matrix_task_template", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "crm_pipeline_id", "name"], name: "idx_crm_stages_account_pipeline_name", unique: true
+    t.index ["account_id"], name: "index_crm_stages_on_account_id"
+    t.index ["crm_pipeline_id", "position"], name: "idx_crm_stages_pipeline_position", unique: true
+    t.index ["crm_pipeline_id"], name: "index_crm_stages_on_crm_pipeline_id"
+  end
+
   create_table "csat_survey_responses", force: :cascade do |t|
     t.bigint "account_id", null: false
     t.bigint "conversation_id", null: false
@@ -1095,6 +1192,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "portal_members", force: :cascade do |t|
+    t.bigint "portal_id"
+    t.bigint "user_id"
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["portal_id", "user_id"], name: "index_portal_members_on_portal_id_and_user_id", unique: true
+    t.index ["user_id", "portal_id"], name: "index_portal_members_on_user_id_and_portal_id", unique: true
+  end
+
   create_table "portals", force: :cascade do |t|
     t.integer "account_id", null: false
     t.string "name", null: false
@@ -1247,6 +1353,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
     t.index ["name", "account_id"], name: "index_teams_on_name_and_account_id", unique: true
   end
 
+  create_table "telegram_bots", id: :serial, force: :cascade do |t|
+    t.string "name"
+    t.string "auth_key"
+    t.integer "account_id"
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+  end
+
   create_table "users", id: :serial, force: :cascade do |t|
     t.string "provider", default: "email", null: false
     t.string "uid", default: "", null: false
@@ -1318,6 +1432,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_28_120000) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "crm_activities", "accounts"
+  add_foreign_key "crm_activities", "crm_opportunities", on_delete: :cascade
+  add_foreign_key "crm_companies", "accounts"
+  add_foreign_key "crm_opportunities", "accounts"
+  add_foreign_key "crm_opportunities", "crm_pipelines", on_delete: :cascade
+  add_foreign_key "crm_opportunities", "crm_stages", on_delete: :restrict
+  add_foreign_key "crm_pipelines", "accounts"
+  add_foreign_key "crm_stages", "accounts"
+  add_foreign_key "crm_stages", "crm_pipelines", on_delete: :cascade
   add_foreign_key "inboxes", "portals"
   create_trigger("accounts_after_insert_row_tr", :generated => true, :compatibility => 1).
       on("accounts").
