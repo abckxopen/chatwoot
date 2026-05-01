@@ -241,3 +241,14 @@
   display_name: Advanced Assignment
   enabled: false
   premium: true
+
+# >>> HOLDING CRM <<<
+# [2026-04-30] Feature flags do módulo CRM da holding (fork abckxopen).
+# Adições isoladas no FINAL do array — política em brain/fork-policy.md.
+# Trocar nomes ou remover QUEBRA `account.feature_enabled?(:crm_pipeline)`
+# no código. Marcador anchor `# >>> HOLDING CRM <<<` indica área da
+# holding pra resolução de conflito em cherry-pick do upstream.
+- name: crm_pipeline
+  display_name: CRM Pipeline (Holding)
+  enabled: false
+# <<< HOLDING CRM >>>

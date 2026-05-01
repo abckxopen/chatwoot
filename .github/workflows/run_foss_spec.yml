@@ -110,6 +110,14 @@ jobs:
 
       - name: Seed database
         run: bundle exec rake db:schema:load
+        # [2026-04-30 holding fork] db:migrate aplicado depois do schema:load
+        # pra cobrir migrations novas que ainda não foram refletidas no
+        # schema.rb. Comum no fork porque a gente adiciona migrations sem
+        # rodar localmente (sem dev env Ruby/Postgres pronto). Pode causar
+        # conflito em merges upstream — resolução é trivial (manter os 2
+        # passos OU restaurar só schema:load se schema.rb estiver atualizado).
+      - name: Apply pending migrations (holding fork)
+        run: bundle exec rake db:migrate
 
       - name: Run backend tests (parallelized)
         run: |
