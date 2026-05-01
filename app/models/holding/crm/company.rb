@@ -53,15 +53,15 @@ module Holding
 
       private
 
+      # [2026-05-01] Normalize só whitespace + case. NÃO strip protocol/path
+      # porque escondia input ambíguo do client e quebrava a validação:
+      # "http://no-protocol.com" virava "no-protocol.com" e passava no
+      # DOMAIN_REGEX, mesmo o spec exigindo rejeição. Production-mind:
+      # rejeitar entrada bagunçada na API e o client manda limpo.
       def normalize_domain
         return if domain.blank?
 
-        self.domain = domain.to_s
-                            .strip
-                            .downcase
-                            .sub(%r{\Ahttps?://}, '')
-                            .sub(/\Awww\./, '')
-                            .split('/').first
+        self.domain = domain.to_s.strip.downcase
       end
 
       def dispatch_created_event

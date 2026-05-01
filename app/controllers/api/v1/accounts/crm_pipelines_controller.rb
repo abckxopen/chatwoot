@@ -3,7 +3,11 @@
 # injetado por before_action :current_account) + Pundit pra autorização.
 #
 # Defesa em camadas (regra Founder msg 308 "sem gambiarras e seguro"):
-# 1. Feature flag gate (`crm_pipeline`) — 403 se conta não tem feature
+# 1. Gate por conta (`accounts.holding_crm_enabled`) — 403 se a conta
+#    não tem o módulo CRM da holding habilitado. Coluna boolean dedicada
+#    do fork; ver migration AddHoldingCrmEnabledToAccounts pra contexto
+#    (escolhemos coluna em vez de feature_flags por causa do limite de
+#    63 features do core e pra não vazar a flag em custom_attributes).
 # 2. Pundit policy — 403 se role não tem permissão
 # 3. Scope explícito por Current.account em TODA query — defesa contra
 #    bug que esqueça account_id; cross-tenant exfil é o risco principal
@@ -66,7 +70,7 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
   end
 
   def ensure_feature_enabled
-    return if Current.account.feature_enabled?(:crm_pipeline)
+    return if Current.account.holding_crm_enabled?
 
     render json: { error: I18n.t('errors.crm.feature_disabled') }, status: :forbidden
   end

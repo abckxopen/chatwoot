@@ -3,7 +3,7 @@ require 'rails_helper'
 # [2026-04-30] Spec request pra Api::V1::Accounts::CrmPipelinesController.
 # Cobertura mínima exigida (regra Founder "sem gambiarras e seguro"):
 # - auth: 401 sem headers
-# - feature flag: 403 quando crm_pipeline desabilitado
+# - gate por conta: 403 quando accounts.holding_crm_enabled = false
 # - autorização: matriz role × action (admin pode tudo, agent só read)
 # - tenancy isolation: 2 accounts, garantir que não vaza recurso
 # - strong params: account_id e id em payload são IGNORADOS
@@ -15,7 +15,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
   let(:agent) { create(:user, account: account, role: :agent) }
   let(:other_admin) { create(:user, account: other_account, role: :administrator) }
 
-  before { account.enable_features!(:crm_pipeline) }
+  before { account.update!(holding_crm_enabled: true) }
 
   describe 'GET /api/v1/accounts/:account_id/crm_pipelines' do
     context 'when unauthenticated' do
@@ -25,8 +25,8 @@ RSpec.describe 'CRM Pipelines API', type: :request do
       end
     end
 
-    context 'when feature crm_pipeline disabled' do
-      before { account.disable_features!(:crm_pipeline) }
+    context 'when holding_crm_enabled is false' do
+      before { account.update!(holding_crm_enabled: false) }
 
       it 'returns 403' do
         get "/api/v1/accounts/#{account.id}/crm_pipelines",

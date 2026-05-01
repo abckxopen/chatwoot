@@ -242,13 +242,9 @@
   enabled: false
   premium: true
 
-# >>> HOLDING CRM <<<
-# [2026-04-30] Feature flags do módulo CRM da holding (fork abckxopen).
-# Adições isoladas no FINAL do array — política em brain/fork-policy.md.
-# Trocar nomes ou remover QUEBRA `account.feature_enabled?(:crm_pipeline)`
-# no código. Marcador anchor `# >>> HOLDING CRM <<<` indica área da
-# holding pra resolução de conflito em cherry-pick do upstream.
-- name: crm_pipeline
-  display_name: CRM Pipeline (Holding)
-  enabled: false
-# <<< HOLDING CRM >>>
+# [2026-05-01] Feature flag `crm_pipeline` foi removida daqui. WHY:
+# Featurable do core armazena flags em int8 signed (max 63 bits úteis)
+# e o features.yml de upstream já tinha 63 entradas — adicionar a 64ª
+# overflowa no save. Substituído pela coluna `accounts.holding_crm_enabled`
+# (migration AddHoldingCrmEnabledToAccounts). Não recolocar aqui sem
+# resolver o limite no core primeiro.
