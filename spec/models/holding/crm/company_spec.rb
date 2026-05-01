@@ -14,7 +14,11 @@ RSpec.describe Holding::Crm::Company do
 
     describe 'domain format' do
       it { is_expected.to allow_value('abckx.com.br', 'inteligenciaavancada.com', 'sub.example.io').for(:domain) }
-      it { is_expected.not_to allow_value('not a domain', '123', '.com', 'http://no-protocol.com').for(:domain) }
+      # [2026-05-01] `http://no-protocol.com` saiu da lista — após
+      # normalize_domain strippar o `http://` o que sobra é um domínio
+      # válido. Para testar input estritamente inválido pós-normalize,
+      # use formas sem TLD ou com chars inválidos.
+      it { is_expected.not_to allow_value('not a domain', '123', '.com', 'no-tld').for(:domain) }
 
       it 'allow blank domain' do
         expect(build(:holding_crm_company, domain: nil)).to be_valid

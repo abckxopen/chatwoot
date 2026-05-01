@@ -40,8 +40,16 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
   end
 
   def destroy
-    @pipeline.destroy!
-    head :no_content
+    if @pipeline.destroy
+      head :no_content
+    else
+      # restrict_with_error em has_many :opportunities deixa pipeline
+      # não-destruída e adiciona erro em base ("Cannot delete record
+      # because dependent opportunities exist"). 422 com errors no payload
+      # dá ao client a granularidade pra mostrar mensagem útil em vez
+      # de só "destroy falhou".
+      render json: { errors: @pipeline.errors.full_messages }, status: :unprocessable_entity
+    end
   end
 
   private
