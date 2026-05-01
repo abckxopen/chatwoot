@@ -5,7 +5,7 @@
 # Decisão "agente vê tudo" intencional: pipeline é metadado de infraestrutura,
 # não dado sensível por opp. Esconder pipelines de agente seria UX confuso —
 # mas opportunities individuais terão filtro por assignee mais granular.
-class CrmPipelinePolicy < ApplicationPolicy
+class Holding::Crm::PipelinePolicy < ApplicationPolicy
   def index?
     true
   end
