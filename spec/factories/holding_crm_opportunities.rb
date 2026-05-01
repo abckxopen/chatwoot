@@ -6,7 +6,17 @@ FactoryBot.define do
       pipeline_account { nil }
     end
 
-    pipeline { association :holding_crm_pipeline, account: pipeline_account }
+    # [2026-04-30] Se pipeline_account for nil (default), o factory de
+    # pipeline cria sua própria account; se foi passado, reusa pra
+    # manter consistência tenant. Passar `account: nil` direto quebra a
+    # validação `belongs_to :account` do Pipeline.
+    pipeline do
+      if pipeline_account
+        association :holding_crm_pipeline, account: pipeline_account
+      else
+        association :holding_crm_pipeline
+      end
+    end
     account { pipeline.account }
     stage { association :holding_crm_stage, pipeline: pipeline, account: pipeline.account }
 
