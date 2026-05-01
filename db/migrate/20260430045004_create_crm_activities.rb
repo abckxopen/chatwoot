@@ -9,7 +9,7 @@
 # de "follow-up" por opp inicial (basico) e expansão pra múltiplas
 # atividades por fase quando o time precisar.
 class CreateCrmActivities < ActiveRecord::Migration[7.1]
-  def change
+  def change # rubocop:disable Metrics/MethodLength
     create_table :crm_activities do |t|
       t.references :account, null: false, foreign_key: true, index: true
       t.references :crm_opportunity, null: false,

@@ -13,51 +13,47 @@
 # upstream (ex: 'contact.created', 'conversation.status_changed'). Isso
 # também garante zero colisão com namespace de eventos upstream.
 
-module Holding
-  module Crm
-    module Events
-      # ======================================================================
-      # PIPELINE / STAGE
-      # ======================================================================
-      PIPELINE_CREATED          = 'crm.pipeline.created'
-      PIPELINE_UPDATED          = 'crm.pipeline.updated'
-      PIPELINE_DELETED          = 'crm.pipeline.deleted'
+module Holding::Crm::Events
+  # ======================================================================
+  # PIPELINE / STAGE
+  # ======================================================================
+  PIPELINE_CREATED          = 'crm.pipeline.created'.freeze
+  PIPELINE_UPDATED          = 'crm.pipeline.updated'.freeze
+  PIPELINE_DELETED          = 'crm.pipeline.deleted'.freeze
 
-      STAGE_CREATED             = 'crm.stage.created'
-      STAGE_UPDATED             = 'crm.stage.updated'
+  STAGE_CREATED             = 'crm.stage.created'.freeze
+  STAGE_UPDATED             = 'crm.stage.updated'.freeze
 
-      # ======================================================================
-      # COMPANY
-      # ======================================================================
-      COMPANY_CREATED           = 'crm.company.created'
-      COMPANY_UPDATED           = 'crm.company.updated'
+  # ======================================================================
+  # COMPANY
+  # ======================================================================
+  COMPANY_CREATED           = 'crm.company.created'.freeze
+  COMPANY_UPDATED           = 'crm.company.updated'.freeze
 
-      # ======================================================================
-      # OPPORTUNITY
-      # ======================================================================
-      OPPORTUNITY_CREATED       = 'crm.opportunity.created'
-      OPPORTUNITY_UPDATED       = 'crm.opportunity.updated'
+  # ======================================================================
+  # OPPORTUNITY
+  # ======================================================================
+  OPPORTUNITY_CREATED       = 'crm.opportunity.created'.freeze
+  OPPORTUNITY_UPDATED       = 'crm.opportunity.updated'.freeze
 
-      # [2026-04-30] STAGE_CHANGED é o evento mais importante do CRM — gatilha
-      # integração Matrix one-way (Phase 2). Payload obrigatório:
-      # `{ opportunity:, old_stage_id:, new_stage_id: }`. Mudar formato
-      # quebra CrmListener#crm_opportunity_stage_changed.
-      OPPORTUNITY_STAGE_CHANGED = 'crm.opportunity.stage_changed'
+  # [2026-04-30] STAGE_CHANGED é o evento mais importante do CRM — gatilha
+  # integração Matrix one-way (Phase 2). Payload obrigatório:
+  # `{ opportunity:, old_stage_id:, new_stage_id: }`. Mudar formato
+  # quebra CrmListener#crm_opportunity_stage_changed.
+  OPPORTUNITY_STAGE_CHANGED = 'crm.opportunity.stage_changed'.freeze
 
-      OPPORTUNITY_WON           = 'crm.opportunity.won'
-      OPPORTUNITY_LOST          = 'crm.opportunity.lost'
+  OPPORTUNITY_WON           = 'crm.opportunity.won'.freeze
+  OPPORTUNITY_LOST          = 'crm.opportunity.lost'.freeze
 
-      # ======================================================================
-      # ACTIVITY (prazos / tarefas por opp)
-      # ======================================================================
-      ACTIVITY_CREATED          = 'crm.activity.created'
-      ACTIVITY_COMPLETED        = 'crm.activity.completed'
+  # ======================================================================
+  # ACTIVITY (prazos / tarefas por opp)
+  # ======================================================================
+  ACTIVITY_CREATED          = 'crm.activity.created'.freeze
+  ACTIVITY_COMPLETED        = 'crm.activity.completed'.freeze
 
-      # [2026-04-30] DUE_SOON / OVERDUE são disparados por Sidekiq cron
-      # (Phase 2). Cron varre activities com `due_at` em janela e dispara
-      # esses eventos. Não são disparados em mudança de campo de model.
-      ACTIVITY_DUE_SOON         = 'crm.activity.due_soon'
-      ACTIVITY_OVERDUE          = 'crm.activity.overdue'
-    end
-  end
+  # [2026-04-30] DUE_SOON / OVERDUE são disparados por Sidekiq cron
+  # (Phase 2). Cron varre activities com `due_at` em janela e dispara
+  # esses eventos. Não são disparados em mudança de campo de model.
+  ACTIVITY_DUE_SOON         = 'crm.activity.due_soon'.freeze
+  ACTIVITY_OVERDUE          = 'crm.activity.overdue'.freeze
 end

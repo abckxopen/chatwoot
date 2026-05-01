@@ -9,7 +9,10 @@
 # - Permite criar opp "rascunho" e enriquecer depois
 # Validação de "tem que ter pelo menos 1" (contact OU company) fica no model.
 class CreateCrmOpportunities < ActiveRecord::Migration[7.1]
-  def change
+  # [2026-04-30] AbcSize/MethodLength desabilitados: schema declarativo de
+  # migration densa naturalmente ultrapassa thresholds; quebrar em métodos
+  # auxiliares prejudica legibilidade da estrutura da tabela.
+  def change # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     create_table :crm_opportunities do |t|
       t.references :account, null: false, foreign_key: true, index: true
       t.references :crm_pipeline, null: false,
