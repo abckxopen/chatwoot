@@ -7,7 +7,10 @@ json.position pipeline.position
 # [2026-04-30] Stages embeddados — payload pequeno (raramente >10 stages
 # por pipeline). Evita N+1 query adicional do client. Pra payload grande
 # refatorar pra include/exclude opt-in via param.
-json.stages pipeline.stages.ordered do |stage|
+# [2026-05-01] Ordena in-memory pra reusar o preload do controller
+# (`includes(:stages)`). Chamar `.ordered` aqui re-queryia, defeating
+# o preload — N+1 silencioso na index. sort_by replica o ORDER do scope.
+json.stages pipeline.stages.sort_by { |s| [s.position, s.id] } do |stage|
   json.id stage.id
   json.name stage.name
   json.position stage.position

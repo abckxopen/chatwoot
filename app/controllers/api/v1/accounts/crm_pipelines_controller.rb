@@ -17,13 +17,12 @@
 #    errors granulares
 class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseController
   before_action :ensure_feature_enabled
-  before_action :check_authorization
+  before_action :check_authorization, only: %i[index create]
   before_action :fetch_pipeline, only: %i[show update destroy]
 
   def index
-    pipelines = pipelines_scope.defaults_first
-    @pipelines = pipelines.page(params[:page]).per(per_page)
-    @total_count = pipelines.count
+    @current_page = page_param
+    @pipelines = pipelines_scope.defaults_first.includes(:stages).page(@current_page).per(per_page)
   end
 
   def show; end
@@ -87,5 +86,10 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
   # e sobrecarregar DB. Default 25 alinhado com convenção Chatwoot.
   def per_page
     [[(params[:per_page] || 25).to_i, 1].max, 100].min
+  end
+
+  def page_param
+    page = params[:page].to_i
+    page.positive? ? page : 1
   end
 end

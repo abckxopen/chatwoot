@@ -1,6 +1,6 @@
 json.meta do
-  json.count @total_count
-  json.current_page params[:page].to_i.positive? ? params[:page].to_i : 1
+  json.count @pipelines.total_count
+  json.current_page @current_page
 end
 
 json.payload @pipelines do |pipeline|
