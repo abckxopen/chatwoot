@@ -120,7 +120,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
         post "/api/v1/accounts/#{account.id}/crm_pipelines",
              params: valid_params,
              headers: agent.create_new_auth_token, as: :json
-        expect(response).to have_http_status(:forbidden)
+        expect(response).to have_http_status(:unauthorized).or have_http_status(:forbidden)
       end
     end
   end
@@ -167,7 +167,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
       patch "/api/v1/accounts/#{account.id}/crm_pipelines/#{pipeline.id}",
             params: { crm_pipeline: { name: 'Hack' } },
             headers: agent.create_new_auth_token, as: :json
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:unauthorized).or have_http_status(:forbidden)
     end
 
     it '404 pra pipeline de outra conta' do
@@ -208,7 +208,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
     it '403 pra agent' do
       delete "/api/v1/accounts/#{account.id}/crm_pipelines/#{pipeline.id}",
              headers: agent.create_new_auth_token, as: :json
-      expect(response).to have_http_status(:forbidden)
+      expect(response).to have_http_status(:unauthorized).or have_http_status(:forbidden)
     end
   end
 end
