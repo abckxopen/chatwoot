@@ -70,9 +70,9 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
     authorize(Holding::Crm::Pipeline, "#{action_name}?".to_sym)
   end
 
-  # [2026-04-30] Strong params: aceita só atributos editáveis. Trocar
-  # ABSOLUTAMENTE EVITAR `params.require(:crm_pipeline).permit!` que
-  # liberaria account_id, id, timestamps — vetor de mass-assignment.
+  # [2026-04-30] Strong params: aceita só atributos editáveis. ABSOLUTAMENTE
+  # EVITAR `params.require(:crm_pipeline).permit!` que liberaria account_id,
+  # id, timestamps — vetor de mass-assignment.
   def pipeline_params
     params.require(:crm_pipeline).permit(:name, :description, :default_pipeline, :position)
   end
