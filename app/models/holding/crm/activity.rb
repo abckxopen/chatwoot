@@ -28,67 +28,63 @@
 # múltiplas tasks por opp ao longo do funil — Founder pediu o "basico
 # agora, mas ja pensando que podemos colocar mais tasks ali por fase"
 # (msg 270).
-module Holding
-  module Crm
-    class Activity < ApplicationRecord
-      self.table_name = 'crm_activities'
+class Holding::Crm::Activity < ApplicationRecord
+  self.table_name = 'crm_activities'
 
-      # [2026-04-30] Kind enum integer. NÃO trocar índices: 0=call, 1=email,
-      # 2=meeting, 3=note, 4=task. Adicionar tipo novo é OK (next int).
-      enum :kind, { call: 0, email: 1, meeting: 2, note: 3, task: 4 }, default: :task
+  # [2026-04-30] Kind enum integer. NÃO trocar índices: 0=call, 1=email,
+  # 2=meeting, 3=note, 4=task. Adicionar tipo novo é OK (next int).
+  enum :kind, { call: 0, email: 1, meeting: 2, note: 3, task: 4 }, default: :task
 
-      belongs_to :account
-      belongs_to :opportunity, class_name: 'Holding::Crm::Opportunity',
-                               foreign_key: :crm_opportunity_id,
-                               inverse_of: :activities
-      # [2026-04-30] Assignee = User core. Optional pra activity geral.
-      belongs_to :assignee, class_name: 'User', optional: true
+  belongs_to :account
+  belongs_to :opportunity, class_name: 'Holding::Crm::Opportunity',
+                           foreign_key: :crm_opportunity_id,
+                           inverse_of: :activities
+  # [2026-04-30] Assignee = User core. Optional pra activity geral.
+  belongs_to :assignee, class_name: 'User', optional: true
 
-      validates :subject, presence: true
+  validates :subject, presence: true
 
-      scope :open, -> { where(completed_at: nil) }
-      scope :completed, -> { where.not(completed_at: nil) }
-      scope :overdue, -> { open.where('due_at < ?', Time.zone.now) }
-      scope :due_within, ->(window) { open.where(due_at: Time.zone.now..(Time.zone.now + window)) }
+  scope :open, -> { where(completed_at: nil) }
+  scope :completed, -> { where.not(completed_at: nil) }
+  scope :overdue, -> { open.where('due_at < ?', Time.zone.now) }
+  scope :due_within, ->(window) { open.where(due_at: Time.zone.now..(Time.zone.now + window)) }
 
-      after_create_commit :dispatch_created_event
-      after_update_commit :dispatch_completed_event, if: :just_completed?
+  after_create_commit :dispatch_created_event
+  after_update_commit :dispatch_completed_event, if: :just_completed?
 
-      def open?
-        completed_at.blank?
-      end
+  def open?
+    completed_at.blank?
+  end
 
-      def overdue?
-        open? && due_at.present? && due_at.past?
-      end
+  def overdue?
+    open? && due_at.present? && due_at.past?
+  end
 
-      # [2026-04-30] complete! sem args usa now. Rails update marca
-      # `saved_change_to_completed_at` que aciona dispatch_completed_event.
-      def complete!(at: Time.zone.now)
-        update!(completed_at: at)
-      end
+  # [2026-04-30] complete! sem args usa now. Rails update marca
+  # `saved_change_to_completed_at` que aciona dispatch_completed_event.
+  def complete!(at: Time.zone.now)
+    update!(completed_at: at)
+  end
 
-      private
+  private
 
-      def just_completed?
-        saved_change_to_completed_at? && completed_at.present?
-      end
+  def just_completed?
+    saved_change_to_completed_at? && completed_at.present?
+  end
 
-      def dispatch_created_event
-        Rails.configuration.dispatcher.dispatch(
-          ::Holding::Crm::Events::ACTIVITY_CREATED,
-          Time.zone.now,
-          activity: self
-        )
-      end
+  def dispatch_created_event
+    Rails.configuration.dispatcher.dispatch(
+      ::Holding::Crm::Events::ACTIVITY_CREATED,
+      Time.zone.now,
+      activity: self
+    )
+  end
 
-      def dispatch_completed_event
-        Rails.configuration.dispatcher.dispatch(
-          ::Holding::Crm::Events::ACTIVITY_COMPLETED,
-          Time.zone.now,
-          activity: self
-        )
-      end
-    end
+  def dispatch_completed_event
+    Rails.configuration.dispatcher.dispatch(
+      ::Holding::Crm::Events::ACTIVITY_COMPLETED,
+      Time.zone.now,
+      activity: self
+    )
   end
 end

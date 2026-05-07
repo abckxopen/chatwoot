@@ -26,59 +26,55 @@
 # `contacts` table). Service de linkagem (Phase 1) lê/escreve em
 # `Contact#additional_attributes['crm_company_id']`. Validação de integridade
 # é responsabilidade do service.
-module Holding
-  module Crm
-    class Company < ApplicationRecord
-      self.table_name = 'crm_companies'
+class Holding::Crm::Company < ApplicationRecord
+  self.table_name = 'crm_companies'
 
-      belongs_to :account
-      has_many :opportunities, class_name: 'Holding::Crm::Opportunity',
-                               foreign_key: :crm_company_id,
-                               inverse_of: :company,
-                               dependent: :nullify
+  belongs_to :account
+  has_many :opportunities, class_name: 'Holding::Crm::Opportunity',
+                           foreign_key: :crm_company_id,
+                           inverse_of: :company,
+                           dependent: :nullify
 
-      # [2026-04-30] Domínio normalizado lowercase + sem `https://` / `www.`.
-      # Soft-validate (regex frouxo) — domain é metadado, não vai bloquear
-      # cadastro de empresa por digitação imperfeita.
-      DOMAIN_REGEX = /\A(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,}\z/
+  # [2026-04-30] Domínio normalizado lowercase + sem `https://` / `www.`.
+  # Soft-validate (regex frouxo) — domain é metadado, não vai bloquear
+  # cadastro de empresa por digitação imperfeita.
+  DOMAIN_REGEX = /\A(?:(?!-)[A-Za-z0-9-]{1,63}(?<!-)\.)+[A-Za-z]{2,}\z/
 
-      validates :name, presence: true,
-                       uniqueness: { scope: :account_id }
-      validates :domain, format: { with: DOMAIN_REGEX }, allow_blank: true
+  validates :name, presence: true,
+                   uniqueness: { scope: :account_id }
+  validates :domain, format: { with: DOMAIN_REGEX }, allow_blank: true
 
-      before_validation :normalize_domain
+  before_validation :normalize_domain
 
-      after_create_commit :dispatch_created_event
-      after_update_commit :dispatch_updated_event
+  after_create_commit :dispatch_created_event
+  after_update_commit :dispatch_updated_event
 
-      private
+  private
 
-      def normalize_domain
-        return if domain.blank?
+  def normalize_domain
+    return if domain.blank?
 
-        self.domain = domain.to_s
-                            .strip
-                            .downcase
-                            .sub(%r{\Ahttps?://}, '')
-                            .sub(/\Awww\./, '')
-                            .split('/').first
-      end
+    self.domain = domain.to_s
+                        .strip
+                        .downcase
+                        .sub(%r{\Ahttps?://}, '')
+                        .delete_prefix('www.')
+                        .split('/').first
+  end
 
-      def dispatch_created_event
-        Rails.configuration.dispatcher.dispatch(
-          ::Holding::Crm::Events::COMPANY_CREATED,
-          Time.zone.now,
-          company: self
-        )
-      end
+  def dispatch_created_event
+    Rails.configuration.dispatcher.dispatch(
+      ::Holding::Crm::Events::COMPANY_CREATED,
+      Time.zone.now,
+      company: self
+    )
+  end
 
-      def dispatch_updated_event
-        Rails.configuration.dispatcher.dispatch(
-          ::Holding::Crm::Events::COMPANY_UPDATED,
-          Time.zone.now,
-          company: self
-        )
-      end
-    end
+  def dispatch_updated_event
+    Rails.configuration.dispatcher.dispatch(
+      ::Holding::Crm::Events::COMPANY_UPDATED,
+      Time.zone.now,
+      company: self
+    )
   end
 end

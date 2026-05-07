@@ -10,7 +10,7 @@ json.position pipeline.position
 # [2026-05-01] Ordena in-memory pra reusar o preload do controller
 # (`includes(:stages)`). Chamar `.ordered` aqui re-queryia, defeating
 # o preload — N+1 silencioso na index. sort_by replica o ORDER do scope.
-json.stages pipeline.stages.sort_by { |s| [s.position, s.id] } do |stage|
+json.stages(pipeline.stages.sort_by { |s| [s.position, s.id] }) do |stage|
   json.id stage.id
   json.name stage.name
   json.position stage.position

@@ -36,9 +36,11 @@ RSpec.describe 'CRM Pipelines API', type: :request do
     end
 
     context 'when authenticated as admin' do
-      let!(:pipeline_a) { create(:holding_crm_pipeline, account: account, name: 'Outbound') }
-      let!(:pipeline_default) { create(:holding_crm_pipeline, :default, account: account, name: 'Vendas MB') }
-      let!(:other_account_pipeline) { create(:holding_crm_pipeline, account: other_account, name: 'NotMine') }
+      before do
+        create(:holding_crm_pipeline, account: account, name: 'Outbound')
+        create(:holding_crm_pipeline, :default, account: account, name: 'Vendas MB')
+        create(:holding_crm_pipeline, account: other_account, name: 'NotMine')
+      end
 
       it 'lists pipelines da conta com defaults_first' do
         get "/api/v1/accounts/#{account.id}/crm_pipelines",
@@ -54,7 +56,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
     end
 
     context 'when authenticated as agent (read access)' do
-      let!(:_pipeline) { create(:holding_crm_pipeline, account: account) }
+      before { create(:holding_crm_pipeline, account: account) }
 
       it 'permite read' do
         get "/api/v1/accounts/#{account.id}/crm_pipelines",
@@ -69,14 +71,14 @@ RSpec.describe 'CRM Pipelines API', type: :request do
       { crm_pipeline: { name: 'Outbound Engine', description: 'Funil cold email', default_pipeline: true } }
     end
 
-    context 'as admin' do
+    context 'when admin' do
       it 'cria pipeline' do
         expect do
           post "/api/v1/accounts/#{account.id}/crm_pipelines",
                params: valid_params,
                headers: admin.create_new_auth_token,
                as: :json
-        end.to change { Holding::Crm::Pipeline.count }.by(1)
+        end.to change(Holding::Crm::Pipeline, :count).by(1)
 
         expect(response).to have_http_status(:created)
         body = response.parsed_body
@@ -115,7 +117,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
       end
     end
 
-    context 'as agent' do
+    context 'when agent' do
       it 'retorna 403 (só admin cria)' do
         post "/api/v1/accounts/#{account.id}/crm_pipelines",
              params: valid_params,
@@ -186,7 +188,7 @@ RSpec.describe 'CRM Pipelines API', type: :request do
       expect do
         delete "/api/v1/accounts/#{account.id}/crm_pipelines/#{pipeline.id}",
                headers: admin.create_new_auth_token, as: :json
-      end.to change { Holding::Crm::Pipeline.count }.by(-1)
+      end.to change(Holding::Crm::Pipeline, :count).by(-1)
       expect(response).to have_http_status(:no_content)
     end
 

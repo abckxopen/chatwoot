@@ -85,7 +85,7 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
   # [2026-04-30] per_page com clamp 1..100 — evita client pedir page=1, per=999999
   # e sobrecarregar DB. Default 25 alinhado com convenção Chatwoot.
   def per_page
-    [[(params[:per_page] || 25).to_i, 1].max, 100].min
+    (params[:per_page] || 25).to_i.clamp(1, 100)
   end
 
   def page_param
