@@ -145,11 +145,12 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
           .and_raise(Holding::Crm::MatrixApiClient::ServerError, 'matrix 503')
       end
 
-      it 're-raise (Sidekiq aplica retry com backoff)' do
+      it 'retry_on captura erro e reagenda; não cria Activity' do
+        # retry_on swallows the error and re-enqueues — perform_now does
+        # not propagate. Assert side-effect: no Activity created.
         expect do
           described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage.id)
-        end.to raise_error(Holding::Crm::MatrixApiClient::ServerError)
-        expect(Holding::Crm::Activity.count).to eq(0)
+        end.not_to change(Holding::Crm::Activity, :count)
       end
     end
 

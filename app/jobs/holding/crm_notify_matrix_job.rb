@@ -35,7 +35,7 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
     )
   end
 
-  retry_on Holding::Crm::MatrixApiClient::ServerError, attempts: 5, wait: :exponentially_longer
+  retry_on Holding::Crm::MatrixApiClient::ServerError, attempts: 5, wait: :polynomially_longer
 
   def perform(opportunity_id:, stage_id:)
     opportunity = Holding::Crm::Opportunity.find_by(id: opportunity_id)
