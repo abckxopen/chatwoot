@@ -3,12 +3,14 @@ require 'rails_helper'
 RSpec.describe Holding::Crm::Activity do
   describe 'associations' do
     it { is_expected.to belong_to(:account) }
+
     it 'belongs_to :opportunity (Holding::Crm::Opportunity)' do
       expect(subject).to belong_to(:opportunity)
         .class_name('Holding::Crm::Opportunity')
         .with_foreign_key(:crm_opportunity_id)
         .inverse_of(:activities)
     end
+
     it { is_expected.to belong_to(:assignee).class_name('User').optional }
   end
 
