@@ -16,7 +16,8 @@
 # 5. Validações de model (Pipeline) rodam de novo, gerando 422 com
 #    errors granulares
 class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseController
-  before_action :ensure_feature_enabled
+  include HoldingCrmConcern
+
   before_action :check_authorization, only: %i[index create]
   before_action :fetch_pipeline, only: %i[show update destroy]
 
@@ -76,20 +77,4 @@ class Api::V1::Accounts::CrmPipelinesController < Api::V1::Accounts::BaseControl
     params.require(:crm_pipeline).permit(:name, :description, :default_pipeline, :position)
   end
 
-  def ensure_feature_enabled
-    return if Current.account.holding_crm_enabled?
-
-    render json: { error: I18n.t('errors.crm.feature_disabled') }, status: :forbidden
-  end
-
-  # [2026-04-30] per_page com clamp 1..100 — evita client pedir page=1, per=999999
-  # e sobrecarregar DB. Default 25 alinhado com convenção Chatwoot.
-  def per_page
-    (params[:per_page] || 25).to_i.clamp(1, 100)
-  end
-
-  def page_param
-    page = params[:page].to_i
-    page.positive? ? page : 1
-  end
 end

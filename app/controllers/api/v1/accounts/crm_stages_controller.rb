@@ -2,12 +2,10 @@
 # Defesa em camadas é a mesma do CrmPipelinesController (gate por conta + Pundit
 # + tenancy scope + strong params + model validations) — ver header lá pro racional.
 # Slice-2 specifics: action #reorder + tenant fetch nested via @pipeline.
-#
-# TODO(slice-3): extrair ensure_feature_enabled + tenant scope pra
-# `Holding::Crm::ControllerConcern` quando 3º controller (Companies/Opportunities)
-# replicar o padrão. Não fizemos agora pra evitar abstração com 1 caller.
+# Gate por conta vem de HoldingCrmConcern (slice 3 cumpriu o TODO).
 class Api::V1::Accounts::CrmStagesController < Api::V1::Accounts::BaseController
-  before_action :ensure_feature_enabled
+  include HoldingCrmConcern
+
   before_action :fetch_pipeline
   before_action :check_authorization, only: %i[index create reorder]
   before_action :fetch_stage, only: %i[update destroy]
@@ -75,11 +73,5 @@ class Api::V1::Accounts::CrmStagesController < Api::V1::Accounts::BaseController
       :name, :position, :color, :won, :lost,
       matrix_task_template: %i[enabled board_id title_template description_template priority]
     )
-  end
-
-  def ensure_feature_enabled
-    return if Current.account.holding_crm_enabled?
-
-    render json: { error: I18n.t('errors.crm.feature_disabled') }, status: :forbidden
   end
 end
