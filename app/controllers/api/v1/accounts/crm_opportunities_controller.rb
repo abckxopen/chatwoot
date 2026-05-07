@@ -1,16 +1,8 @@
 # [2026-05-07] Controller REST pra Holding::Crm::Opportunity — coração do CRM.
-# Adiciona às actions REST padrão: #move_to_stage e #discard (member actions).
-#
-# Defesa em camadas mesma das slices 1-3 — ver header de CrmPipelinesController.
-# Diferenças importantes desta slice:
-# - Policy DIVERGE de Pipeline/Stage/Company: agentes podem criar opps e
-#   atualizar/mover SUAS opps (assignee_id == current user). Admin tem tudo.
-#   Esse é o ponto que a Pipeline header anchora ("opportunities individuais
-#   terão filtro por assignee mais granular").
-# - Filtros básicos no index (status, pipeline_id, stage_id, assignee_id).
-#   Não usei gem `sift` ainda porque MVP — fica pra Phase 4 se UI exigir.
-# - move_to_stage delega pro model (#move_to_stage!) que valida pipeline
-#   match + auto-aplica won/lost se a stage destino é marker.
+# Defesa em camadas mesma das slices 1-3 (ver CrmPipelinesController header).
+# Específico desta slice: policy DIVERGE com gate por assignee, member actions
+# #move_to_stage (delega pro model) e #discard (soft-delete).
+# Filtros do index são manuais — sift gem fica pra Phase 4 se UI exigir.
 class Api::V1::Accounts::CrmOpportunitiesController < Api::V1::Accounts::BaseController
   include HoldingCrmConcern
 
@@ -70,28 +62,20 @@ class Api::V1::Accounts::CrmOpportunitiesController < Api::V1::Accounts::BaseCon
     @opportunities_scope ||= Holding::Crm::Opportunity.where(account_id: Current.account.id)
   end
 
-  # [2026-05-07] Filtros básicos. status (open/won/lost), pipeline_id,
-  # stage_id, assignee_id, plus active_only flag (default true) pra esconder
-  # discarded. Eager loading apenas das relações que o jbuilder embeda
-  # (stage/pipeline/company); assignee_id e contact_id saem como scalar
-  # FK no payload — sem dereferência, sem includes.
+  # [2026-05-07] Filtros básicos. status, pipeline_id, stage_id, assignee_id,
+  # plus include_discarded flag. Eager loading apenas das relações embeddadas
+  # (stage/pipeline/company); assignee_id e contact_id saem scalar FK.
   #
-  # Filter map: param name → coluna AR. Cada chave aplicada via where se
-  # presente. Mapping explícito porque pipeline_id/stage_id no client viram
-  # crm_pipeline_id/crm_stage_id no schema.
-  FILTER_PARAM_TO_COLUMN = {
-    status: :status,
-    pipeline_id: :crm_pipeline_id,
-    stage_id: :crm_stage_id,
-    assignee_id: :assignee_id
-  }.freeze
-
-  def filtered_scope
+  # AbcSize 32/26 desligado: filtros são lineares e auto-explicativos inline.
+  # Convenção do chatwoot upstream usa essa shape (live_reports_controller etc).
+  # Map-de-filtros foi tentado mas atrapalha grep da coluna AR (cherry-pick hygiene).
+  def filtered_scope # rubocop:disable Metrics/AbcSize
     scope = opportunities_scope.includes(:stage, :pipeline, :company)
     scope = scope.active unless params[:include_discarded].to_s == 'true'
-    FILTER_PARAM_TO_COLUMN.each do |param_key, column|
-      scope = scope.where(column => params[param_key]) if params[param_key].present?
-    end
+    scope = scope.where(status: params[:status]) if params[:status].present?
+    scope = scope.where(crm_pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
+    scope = scope.where(crm_stage_id: params[:stage_id]) if params[:stage_id].present?
+    scope = scope.where(assignee_id: params[:assignee_id]) if params[:assignee_id].present?
     scope.order(created_at: :desc)
   end
 
