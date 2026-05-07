@@ -65,6 +65,12 @@ class Holding::Crm::Opportunity < ApplicationRecord
   # casos da holding.
   ALLOWED_CURRENCIES = %w[BRL USD EUR GBP].freeze
 
+  # [2026-05-07] custom_attributes é jsonb open-schema (Phase 4 UI permite
+  # campos custom por funil/vila). Permit aberto no controller — cap aqui
+  # bloqueia client malicioso jogar 10MB de jsonb no row. 16KB é o mesmo
+  # limit usado em Holding::Crm::Company#additional_attributes.
+  CUSTOM_ATTRIBUTES_MAX_BYTES = 16 * 1024
+
   belongs_to :account
   belongs_to :pipeline, class_name: 'Holding::Crm::Pipeline',
                         foreign_key: :crm_pipeline_id,
@@ -99,6 +105,7 @@ class Holding::Crm::Opportunity < ApplicationRecord
     less_than_or_equal_to: 100
   }
   validates :value, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validate :custom_attributes_within_size_limit
 
   # [2026-04-30] Soft-delete via discarded_at timestamp em vez de gem
   # `discard` — menos dependência. Padrão segue `default_scope-less`:
@@ -137,6 +144,15 @@ class Holding::Crm::Opportunity < ApplicationRecord
   end
 
   private
+
+  def custom_attributes_within_size_limit
+    return if custom_attributes.blank?
+
+    serialized_size = custom_attributes.to_json.bytesize
+    return if serialized_size <= CUSTOM_ATTRIBUTES_MAX_BYTES
+
+    errors.add(:custom_attributes, :too_large)
+  end
 
   def dispatch_created_event
     Rails.configuration.dispatcher.dispatch(
