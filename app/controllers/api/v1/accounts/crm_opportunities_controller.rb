@@ -75,13 +75,23 @@ class Api::V1::Accounts::CrmOpportunitiesController < Api::V1::Accounts::BaseCon
   # discarded. Eager loading apenas das relações que o jbuilder embeda
   # (stage/pipeline/company); assignee_id e contact_id saem como scalar
   # FK no payload — sem dereferência, sem includes.
+  #
+  # Filter map: param name → coluna AR. Cada chave aplicada via where se
+  # presente. Mapping explícito porque pipeline_id/stage_id no client viram
+  # crm_pipeline_id/crm_stage_id no schema.
+  FILTER_PARAM_TO_COLUMN = {
+    status: :status,
+    pipeline_id: :crm_pipeline_id,
+    stage_id: :crm_stage_id,
+    assignee_id: :assignee_id
+  }.freeze
+
   def filtered_scope
     scope = opportunities_scope.includes(:stage, :pipeline, :company)
     scope = scope.active unless params[:include_discarded].to_s == 'true'
-    scope = scope.where(status: params[:status]) if params[:status].present?
-    scope = scope.where(crm_pipeline_id: params[:pipeline_id]) if params[:pipeline_id].present?
-    scope = scope.where(crm_stage_id: params[:stage_id]) if params[:stage_id].present?
-    scope = scope.where(assignee_id: params[:assignee_id]) if params[:assignee_id].present?
+    FILTER_PARAM_TO_COLUMN.each do |param_key, column|
+      scope = scope.where(column => params[param_key]) if params[param_key].present?
+    end
     scope.order(created_at: :desc)
   end
 

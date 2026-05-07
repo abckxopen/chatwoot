@@ -45,7 +45,9 @@ RSpec.describe 'CRM Opportunities API', type: :request do
 
     context 'when admin authenticated' do
       let!(:active_opp) { create(:holding_crm_opportunity, account: account, pipeline: pipeline, stage: stage, name: 'Active Deal') }
-      let!(:discarded_opp) { create(:holding_crm_opportunity, :discarded, account: account, pipeline: pipeline, stage: stage, name: 'Discarded Deal') }
+      let!(:discarded_opp) do
+        create(:holding_crm_opportunity, :discarded, account: account, pipeline: pipeline, stage: stage, name: 'Discarded Deal')
+      end
 
       it 'lista opps active por padrão (oculta discarded)' do
         get "/api/v1/accounts/#{account.id}/crm_opportunities",
