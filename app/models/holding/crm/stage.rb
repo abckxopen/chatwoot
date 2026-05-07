@@ -62,6 +62,43 @@ class Holding::Crm::Stage < ApplicationRecord
   after_create_commit :dispatch_created_event
   after_update_commit :dispatch_updated_event
 
+  # [2026-05-07] Reorder em batch preservando UNIQUE (crm_pipeline_id, position).
+  # PG checa unique index por-row (não diferível p/ unique INDEX, só p/ unique
+  # CONSTRAINT), então 1 pass direto pra 0..N-1 colide com rows ainda na ordem
+  # antiga. Estratégia 2-pass:
+  # 1. Move tudo pra range temporário (offset > N) — sem colisão.
+  # 2. Assigna 0..N-1 final.
+  #
+  # Lock no pipeline row pra serializar reorders concorrentes na mesma pipeline
+  # (sem ele, dois reorders simultâneos pegam o mesmo safe_offset e
+  # PG::UniqueViolation aborta um). Diferentes pipelines não contendem.
+  #
+  # Validação: ordered_ids precisa ser EXATAMENTE o conjunto das stages do
+  # pipeline. Reorder parcial criaria gap de position; ids estranhos seriam
+  # vazamento cross-pipeline.
+  def self.update_positions_for_pipeline!(pipeline:, ordered_ids:)
+    transaction do
+      pipeline_locked = Holding::Crm::Pipeline.lock.find(pipeline.id)
+      pipeline_stage_ids = pipeline_locked.stages.pluck(:id)
+
+      raise ArgumentError, 'ordered_ids must include exactly the pipeline stages' if ordered_ids.sort != pipeline_stage_ids.sort
+
+      safe_offset = pipeline_stage_ids.size + 1000
+      # [2026-05-07] Pass 1: range temporário (positions > qualquer valor válido).
+      # update_all bypassa won_xor_lost / position validations, mas só mexemos
+      # em :position, então é seguro.
+      ordered_ids.each_with_index do |id, idx|
+        pipeline_locked.stages.where(id: id).update_all(position: safe_offset + idx) # rubocop:disable Rails/SkipsModelValidations
+      end
+      # [2026-05-07] CombinableLoops disabled: combinar collide com UNIQUE
+      # (crm_pipeline_id, position) — pass 2 precisa rodar APÓS pass 1
+      # ter movido todas as stages pra range temporário.
+      ordered_ids.each_with_index do |id, idx| # rubocop:disable Style/CombinableLoops
+        pipeline_locked.stages.where(id: id).update_all(position: idx) # rubocop:disable Rails/SkipsModelValidations
+      end
+    end
+  end
+
   private
 
   def won_xor_lost

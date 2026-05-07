@@ -384,7 +384,11 @@ Rails.application.routes.draw do
           # routes CRM em outros pontos do arquivo; tudo aqui dentro.
           # Endpoints servem `Api::V1::Accounts::Crm*Controller`.
           resources :crm_pipelines, only: %i[index show create update destroy] do
-            resources :crm_stages, only: %i[index create update destroy], path: 'stages'
+            resources :crm_stages, only: %i[index create update destroy], path: 'stages' do
+              collection do
+                patch :reorder
+              end
+            end
           end
 
           resources :crm_companies, only: %i[index show create update destroy]
