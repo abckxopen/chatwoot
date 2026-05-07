@@ -55,14 +55,7 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
     matrix_task_id = result['id']
 
     persist_activity!(opportunity, stage, matrix_task_id)
-
-    Rails.logger.info(
-      job: 'Holding::CrmNotifyMatrixJob',
-      event: 'crm.matrix.notify.success',
-      opportunity_id: opportunity.id,
-      stage_id: stage.id,
-      matrix_task_id: matrix_task_id
-    )
+    log_success(opportunity, stage, matrix_task_id)
   end
 
   private
@@ -79,8 +72,7 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
     Holding::Crm::Activity
       .where(crm_opportunity_id: opportunity.id)
       .where('subject LIKE ?', "%#{subject_marker(stage)}%")
-      .where(created_at: IDEMPOTENCY_WINDOW.ago..)
-      .exists?
+      .exists?(created_at: IDEMPOTENCY_WINDOW.ago..)
   end
 
   def build_payload(opportunity, stage, template)
@@ -138,6 +130,16 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
       reason: reason,
       opportunity_id: opportunity_id,
       stage_id: stage_id
+    )
+  end
+
+  def log_success(opportunity, stage, matrix_task_id)
+    Rails.logger.info(
+      job: 'Holding::CrmNotifyMatrixJob',
+      event: 'crm.matrix.notify.success',
+      opportunity_id: opportunity.id,
+      stage_id: stage.id,
+      matrix_task_id: matrix_task_id
     )
   end
 

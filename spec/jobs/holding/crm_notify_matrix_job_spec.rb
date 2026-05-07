@@ -63,13 +63,13 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
     context 'when opportunity não existe' do
       let(:target_stage) { stage }
 
-      include_examples 'skips notification', ->(_, target) { [999_999, target.id] }
+      it_behaves_like 'skips notification', ->(_, target) { [999_999, target.id] }
     end
 
     context 'when template ausente do stage' do
       let(:target_stage) { create(:holding_crm_stage, pipeline: pipeline, account: account, position: 0) }
 
-      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
+      it_behaves_like 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when template enabled=false' do
@@ -78,7 +78,7 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
                                    matrix_task_template: { 'enabled' => false, 'board_id' => 'x' })
       end
 
-      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
+      it_behaves_like 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when board_id ausente do template' do
@@ -87,7 +87,7 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
                                    matrix_task_template: { 'enabled' => true, 'title_template' => 'X' })
       end
 
-      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
+      it_behaves_like 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when já notificou recentemente pra mesma (opp, stage)' do

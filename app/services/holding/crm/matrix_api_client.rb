@@ -25,7 +25,7 @@ class Holding::Crm::MatrixApiClient
 
   def initialize(base_url: nil, token: nil, agent_name: nil)
     @base_url = (base_url || ENV.fetch('MATRIX_API_URL', DEFAULT_BASE_URL)).chomp('/')
-    @token = token || ENV['MATRIX_API_TOKEN']
+    @token = token || ENV.fetch('MATRIX_API_TOKEN', nil)
     @agent_name = agent_name || ENV.fetch('MATRIX_AGENT_NAME', DEFAULT_AGENT_NAME)
   end
 
