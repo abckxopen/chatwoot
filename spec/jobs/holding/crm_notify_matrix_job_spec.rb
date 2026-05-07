@@ -17,6 +17,7 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
 
   before do
     allow(Holding::Crm::MatrixApiClient).to receive(:new).and_return(client_double)
+    allow(client_double).to receive(:create_task).and_return('id' => 'mtx-default')
   end
 
   describe '#perform' do
@@ -49,45 +50,44 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
       end
     end
 
-    context 'when opportunity não existe' do
-      it 'no-op (não cria Activity)' do
+    shared_examples 'skips notification' do |skip_args|
+      it 'no-op (não cria Activity, não chama Matrix API)' do
+        opp_id, stg_id = skip_args.call(opportunity, target_stage)
         expect do
-          described_class.perform_now(opportunity_id: 999_999, stage_id: stage.id)
+          described_class.perform_now(opportunity_id: opp_id, stage_id: stg_id)
         end.not_to change(Holding::Crm::Activity, :count)
+        expect(client_double).not_to have_received(:create_task)
       end
+    end
+
+    context 'when opportunity não existe' do
+      let(:target_stage) { stage }
+
+      include_examples 'skips notification', ->(_, target) { [999_999, target.id] }
     end
 
     context 'when template ausente do stage' do
-      let(:stage_no_template) { create(:holding_crm_stage, pipeline: pipeline, account: account, position: 0) }
+      let(:target_stage) { create(:holding_crm_stage, pipeline: pipeline, account: account, position: 0) }
 
-      it 'no-op' do
-        described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage_no_template.id)
-        expect(Holding::Crm::Activity.count).to eq(0)
-      end
+      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when template enabled=false' do
-      let(:stage_disabled) do
+      let(:target_stage) do
         create(:holding_crm_stage, pipeline: pipeline, account: account, position: 2,
                                    matrix_task_template: { 'enabled' => false, 'board_id' => 'x' })
       end
 
-      it 'no-op' do
-        described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage_disabled.id)
-        expect(Holding::Crm::Activity.count).to eq(0)
-      end
+      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when board_id ausente do template' do
-      let(:stage_noboard) do
+      let(:target_stage) do
         create(:holding_crm_stage, pipeline: pipeline, account: account, position: 3,
                                    matrix_task_template: { 'enabled' => true, 'title_template' => 'X' })
       end
 
-      it 'no-op (defesa contra config parcial)' do
-        described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage_noboard.id)
-        expect(Holding::Crm::Activity.count).to eq(0)
-      end
+      include_examples 'skips notification', ->(opp, target) { [opp.id, target.id] }
     end
 
     context 'when já notificou recentemente pra mesma (opp, stage)' do
@@ -163,18 +163,11 @@ RSpec.describe Holding::CrmNotifyMatrixJob do
                                    })
       end
 
-      before do
-        allow(client_double).to receive(:create_task).and_return('id' => 'mtx-fallback')
-      end
-
-      it 'envia template raw (bug visível em vez de silencioso) e segue' do
-        described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage_bad_template.id)
-
-        expect(client_double).to have_received(:create_task).with(
-          board_id: 'b1',
-          payload: hash_including(title: '{{ unclosed')
-        )
-        expect(Holding::Crm::Activity.last.matrix_task_id).to eq('mtx-fallback')
+      it 'discard fatal (não envia literal pro Matrix, não cria Activity)' do
+        expect do
+          described_class.perform_now(opportunity_id: opportunity.id, stage_id: stage_bad_template.id)
+        end.not_to change(Holding::Crm::Activity, :count)
+        expect(client_double).not_to have_received(:create_task)
       end
     end
   end

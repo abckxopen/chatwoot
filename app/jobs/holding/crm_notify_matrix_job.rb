@@ -1,67 +1,40 @@
-# [2026-05-07 abckxopen-fork] Slice 2.2 — implementação real da integração
-# CRM → Matrix. Substitui stub do slice 2.1.
-#
-# Fluxo:
-#   1. Carrega opp + stage. Sai cedo se template ausente/disabled (defesa
-#      a mais; listener já gateava — segurança extra contra mudança de
-#      ordem ou re-enfileiramento manual).
-#   2. Idempotência (ver "Idempotência" abaixo): no-op se já criamos
-#      task pra esse (opp, stage) em janela recente.
-#   3. Renderiza title/description via Liquid com contexto (opp + stage).
-#   4. POST Matrix /boards/{board_id}/tasks via MatrixApiClient.
-#   5. Persiste Holding::Crm::Activity (kind: :task, matrix_task_id) — é
-#      a representação visível no CRM da holding ("Auto-criada quando
-#      opp entrou na stage X").
+# [2026-05-07 abckxopen-fork] Slice 2.2 — integração CRM → Matrix one-way.
 #
 # Erro semântica (importa pra Sidekiq retries):
-# - ClientError (4xx Matrix API): fatal. discard_on. Indica config errada
-#   (board_id inexistente, token revogado, payload inválido). Retry não
-#   vai resolver — alguém precisa olhar.
-# - ServerError (5xx + transport): transitório. retry_on com backoff
-#   exponencial. Matrix indisponível volta sozinho.
-# - StandardError genérico: re-raise (Sidekiq aplica retry padrão).
+# - ClientError (4xx) + ArgumentError (config faltando): fatal, discard.
+#   Retry não resolve — alguém precisa investigar.
+# - ServerError (5xx + transport): transitório. retry com backoff exp.
 #
-# Idempotência:
-# Pesquisa Holding::Crm::Activity onde subject contém marcador
-# "[stage:<stage_id>]" pra mesma opp em janela IDEMPOTENCY_WINDOW.
-# Marcador inline em vez de coluna FK (crm_stage_id) pra evitar migration
-# nessa slice; trade-off: query LIKE em vez de index — aceitável dado
-# que crm_activities é particionada por opp_id (idx_crm_activities_opp_due
-# já filtra). Se virar gargalo, follow-up adiciona crm_stage_id+index.
+# Idempotência: marker `[stage:N]` no subject da Activity, query LIKE
+# em janela 1h. Inline em vez de coluna FK pra evitar migration nessa
+# slice; trade-off é query LIKE em vez de index, aceitável dado que
+# crm_activities filtra primeiro por crm_opportunity_id (FK index hits)
+# e o slice de rows por opp é pequeno (~tens). Se opps virarem log de
+# centenas+ activities, follow-up adiciona crm_stage_id+index.
 #
-# Por que rendering com Liquid (e não Mustache/gsub manual):
-# - Chatwoot já usa Liquid (canned responses, automation rules).
-# - Liquid sandboxa execução, não permite eval/code injection.
-# - Sintaxe `{{opportunity.name}}` familiar pra agentes.
+# Liquid render é fatal-on-error: template malformado é config bug,
+# enviar `{{ unclosed }}` literal pro Matrix corrompe a task. Raise
+# como ClientError → discard.
 class Holding::CrmNotifyMatrixJob < ApplicationJob
   queue_as :default
 
   IDEMPOTENCY_WINDOW = 1.hour
-  IDEMPOTENCY_MARKER = '[stage:%<stage_id>d]'.freeze
 
-  # 4xx fatal — não tenta de novo. Alguém precisa investigar.
-  discard_on Holding::Crm::MatrixApiClient::ClientError do |job, error|
+  FATAL_ERRORS = [
+    Holding::Crm::MatrixApiClient::ClientError,
+    ArgumentError
+  ].freeze
+
+  discard_on(*FATAL_ERRORS) do |job, error|
     Rails.logger.error(
       job: 'Holding::CrmNotifyMatrixJob',
-      event: 'crm.matrix.notify.client_error_discarded',
+      event: 'crm.matrix.notify.fatal_discarded',
+      error_class: error.class.name,
       error: error.message,
       args: job.arguments
     )
   end
 
-  # ConfigError = MATRIX_API_TOKEN ausente ou board_id vazio na config
-  # do stage. Fatal. Alguém precisa setar a env var ou consertar config.
-  discard_on Holding::Crm::MatrixApiClient::ConfigError do |job, error|
-    Rails.logger.error(
-      job: 'Holding::CrmNotifyMatrixJob',
-      event: 'crm.matrix.notify.config_error_discarded',
-      error: error.message,
-      args: job.arguments
-    )
-  end
-
-  # 5xx + transport: backoff exponencial, 5 tentativas (Sidekiq default
-  # ~3min/15min/.../21h). Após 5x, dead set — alerta humano.
   retry_on Holding::Crm::MatrixApiClient::ServerError, attempts: 5, wait: :exponentially_longer
 
   def perform(opportunity_id:, stage_id:)
@@ -98,19 +71,23 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
     template.present? && template['enabled'] && template['board_id'].present?
   end
 
+  def subject_marker(stage)
+    "[stage:#{stage.id}]"
+  end
+
   def recently_notified?(opportunity, stage)
-    marker = format(IDEMPOTENCY_MARKER, stage_id: stage.id)
     Holding::Crm::Activity
       .where(crm_opportunity_id: opportunity.id)
-      .where('subject LIKE ?', "%#{marker}%")
+      .where('subject LIKE ?', "%#{subject_marker(stage)}%")
       .where(created_at: IDEMPOTENCY_WINDOW.ago..)
       .exists?
   end
 
   def build_payload(opportunity, stage, template)
     context = liquid_context(opportunity, stage)
+    title_tpl = template['title_template'].presence || 'CRM: acompanhar {{opportunity.name}}'
     {
-      title: render_template(template['title_template'].presence || default_title, context),
+      title: render_template(title_tpl, context),
       description: render_template(template['description_template'], context),
       priority: template['priority'].presence || 'medium',
       type: 'on-demand',
@@ -138,28 +115,17 @@ class Holding::CrmNotifyMatrixJob < ApplicationJob
 
     Liquid::Template.parse(template_str).render(context)
   rescue Liquid::Error => e
-    # Template malformado não deve abortar notificação inteira; logamos
-    # e usamos o template raw (vai aparecer com {{...}} literais — bug
-    # visível em vez de silencioso).
-    Rails.logger.warn(
-      job: 'Holding::CrmNotifyMatrixJob',
-      event: 'crm.matrix.notify.template_render_failed',
-      error: e.message
-    )
-    template_str
-  end
-
-  def default_title
-    'CRM: acompanhar {{opportunity.name}}'
+    # Config bug — não enviar literal `{{...}}` pro Matrix. Raise como
+    # ClientError pra ser tratado fatal-discard junto com 4xx.
+    raise Holding::Crm::MatrixApiClient::ClientError, "liquid render failed: #{e.message}"
   end
 
   def persist_activity!(opportunity, stage, matrix_task_id)
-    marker = format(IDEMPOTENCY_MARKER, stage_id: stage.id)
     Holding::Crm::Activity.create!(
       account_id: opportunity.account_id,
       crm_opportunity_id: opportunity.id,
       kind: :task,
-      subject: "Matrix task #{marker} — Stage: #{stage.name}",
+      subject: "Matrix task #{subject_marker(stage)} — Stage: #{stage.name}",
       description: "Auto-criada por CrmNotifyMatrixJob quando opp entrou na stage #{stage.name}.",
       matrix_task_id: matrix_task_id
     )

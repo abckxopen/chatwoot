@@ -86,9 +86,9 @@ RSpec.describe Holding::Crm::MatrixApiClient do
     context 'when token missing' do
       let(:client) { described_class.new(base_url: base_url, token: nil) }
 
-      it 'raises ConfigError before HTTP call' do
+      it 'raises ArgumentError before HTTP call' do
         expect { client.create_task(board_id: board_id, payload: payload) }
-          .to raise_error(described_class::ConfigError, /MATRIX_API_TOKEN/)
+          .to raise_error(ArgumentError, /MATRIX_API_TOKEN/)
       end
     end
 

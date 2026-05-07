@@ -16,10 +16,8 @@
 # Auth: Bearer {MATRIX_API_TOKEN} + X-Agent-Name header (best practice
 # match com matrix mc_curl helper, identifica origem nos logs Matrix).
 class Holding::Crm::MatrixApiClient
-  class Error < StandardError; end
-  class ConfigError < Error; end
-  class ClientError < Error; end
-  class ServerError < Error; end
+  class ClientError < StandardError; end
+  class ServerError < StandardError; end
 
   TIMEOUT_SECONDS = 10
   DEFAULT_BASE_URL = 'https://matrix.abckx.com.br'.freeze
@@ -33,7 +31,7 @@ class Holding::Crm::MatrixApiClient
 
   # Returns parsed response body (Hash) on 2xx; raises on errors.
   def create_task(board_id:, payload:)
-    raise ConfigError, 'MATRIX_API_TOKEN not set' if @token.blank?
+    raise ArgumentError, 'MATRIX_API_TOKEN not set' if @token.blank?
     raise ArgumentError, 'board_id required' if board_id.blank?
 
     url = "#{@base_url}/boards/#{board_id}/tasks"
