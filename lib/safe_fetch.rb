@@ -31,15 +31,7 @@ module SafeFetch
   def self.fetch(url, **, &)
     raise ArgumentError, 'block required' unless block_given?
 
-    # [2026-05-07 abckxopen-fork] require_relative defensivo dentro do método —
-    # em parallel CI partition Zeitwerk pode dropar SafeFetch::Fetcher entre
-    # o top-level require (linhas 27-28) e a chamada do método. require é
-    # idempotente (no-op se já carregado). Pinning explícito do namespace
-    # SafeFetch:: blinda contra reload. Mesma classe do upstream #14139.
-    require_relative 'safe_fetch/request_options'
-    require_relative 'safe_fetch/fetcher'
-
-    SafeFetch::Fetcher.new(SafeFetch::RequestOptions.new(url: url, **)).fetch(&)
+    Fetcher.new(RequestOptions.new(url: url, **)).fetch(&)
   rescue SsrfFilter::InvalidUriScheme, URI::InvalidURIError => e
     raise InvalidUrlError, e.message
   rescue SsrfFilter::Error, Resolv::ResolvError => e

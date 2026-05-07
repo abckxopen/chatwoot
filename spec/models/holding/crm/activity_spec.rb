@@ -29,19 +29,16 @@ RSpec.describe Holding::Crm::Activity do
     let!(:completed) { create(:holding_crm_activity, :completed) }
     let!(:overdue) { create(:holding_crm_activity, :overdue) }
 
-    # [2026-05-07] Comparar por id — workaround AR `==` em parallel CI partition.
-    # Mesmo padrão de pipeline_spec e opportunity_spec, ver
-    # brain/known-issues/ar-equality-pluck-workaround.md.
     it '#open' do
-      expect(described_class.open.pluck(:id)).to contain_exactly(open_activity.id, overdue.id)
+      expect(described_class.open).to contain_exactly(open_activity, overdue)
     end
 
     it '#completed' do
-      expect(described_class.completed.pluck(:id)).to contain_exactly(completed.id)
+      expect(described_class.completed).to contain_exactly(completed)
     end
 
     it '#overdue' do
-      expect(described_class.overdue.pluck(:id)).to contain_exactly(overdue.id)
+      expect(described_class.overdue).to contain_exactly(overdue)
     end
   end
 
