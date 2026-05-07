@@ -75,5 +75,4 @@ class Api::V1::Accounts::CrmCompaniesController < Api::V1::Accounts::BaseControl
   def company_params
     params.require(:crm_company).permit(:name, :domain, :industry, :size, additional_attributes: {})
   end
-
 end
