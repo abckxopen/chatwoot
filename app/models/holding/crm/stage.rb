@@ -81,19 +81,19 @@ class Holding::Crm::Stage < ApplicationRecord
       pipeline_locked = Holding::Crm::Pipeline.lock.find(pipeline.id)
       pipeline_stage_ids = pipeline_locked.stages.pluck(:id)
 
-      if ordered_ids.sort != pipeline_stage_ids.sort
-        raise ArgumentError, 'ordered_ids must include exactly the pipeline stages'
-      end
+      raise ArgumentError, 'ordered_ids must include exactly the pipeline stages' if ordered_ids.sort != pipeline_stage_ids.sort
 
       safe_offset = pipeline_stage_ids.size + 1000
-      # Pass 1: range temporário (positions > qualquer valor válido futuro).
+      # [2026-05-07] Pass 1: range temporário (positions > qualquer valor válido).
       # update_all bypassa won_xor_lost / position validations, mas só mexemos
       # em :position, então é seguro.
       ordered_ids.each_with_index do |id, idx|
         pipeline_locked.stages.where(id: id).update_all(position: safe_offset + idx) # rubocop:disable Rails/SkipsModelValidations
       end
-      # Pass 2: posições finais.
-      ordered_ids.each_with_index do |id, idx|
+      # [2026-05-07] CombinableLoops disabled: combinar collide com UNIQUE
+      # (crm_pipeline_id, position) — pass 2 precisa rodar APÓS pass 1
+      # ter movido todas as stages pra range temporário.
+      ordered_ids.each_with_index do |id, idx| # rubocop:disable Style/CombinableLoops
         pipeline_locked.stages.where(id: id).update_all(position: idx) # rubocop:disable Rails/SkipsModelValidations
       end
     end
