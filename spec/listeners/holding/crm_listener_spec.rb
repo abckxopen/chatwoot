@@ -20,7 +20,7 @@ RSpec.describe Holding::CrmListener do
       build_event(opportunity: opportunity, old_stage_id: stage_no_template.id, new_stage_id: new_stage_id)
     end
 
-    context 'quando stage destino tem matrix_task_template enabled' do
+    context 'when stage destino tem matrix_task_template enabled' do
       let(:new_stage_id) { stage_with_template.id }
 
       it 'enfileira CrmNotifyMatrixJob com opportunity + stage' do
@@ -30,7 +30,7 @@ RSpec.describe Holding::CrmListener do
       end
     end
 
-    context 'quando stage destino NÃO tem template' do
+    context 'when stage destino NÃO tem template' do
       let(:new_stage_id) { stage_no_template.id }
 
       it 'NÃO enfileira job' do
@@ -39,7 +39,7 @@ RSpec.describe Holding::CrmListener do
       end
     end
 
-    context 'quando template existe mas enabled=false' do
+    context 'when template existe mas enabled=false' do
       let(:disabled_stage) do
         create(:holding_crm_stage, pipeline: pipeline, account: account, position: 2,
                                    matrix_task_template: { 'enabled' => false, 'board_id' => 'x' })
@@ -52,7 +52,7 @@ RSpec.describe Holding::CrmListener do
       end
     end
 
-    context 'quando new_stage_id aponta pra stage inexistente' do
+    context 'when new_stage_id aponta pra stage inexistente' do
       let(:new_stage_id) { 999_999 }
 
       it 'NÃO enfileira job (sem raise)' do
@@ -61,7 +61,7 @@ RSpec.describe Holding::CrmListener do
       end
     end
 
-    context 'quando opportunity ausente do payload' do
+    context 'when opportunity ausente do payload' do
       it 'NÃO enfileira job (defesa contra payload malformado)' do
         ev = build_event(opportunity: nil, old_stage_id: nil, new_stage_id: stage_with_template.id)
         expect { listener.crm_opportunity_stage_changed(ev) }
