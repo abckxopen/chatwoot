@@ -18,6 +18,20 @@ RSpec.describe Holding::Crm::Opportunity do
     it { is_expected.to validate_inclusion_of(:currency).in_array(described_class::ALLOWED_CURRENCIES) }
     it { is_expected.to validate_numericality_of(:probability).only_integer.is_greater_than_or_equal_to(0).is_less_than_or_equal_to(100) }
     it { is_expected.to validate_numericality_of(:value).is_greater_than_or_equal_to(0).allow_nil }
+
+    describe 'custom_attributes size cap' do
+      it 'aceita custom_attributes pequeno' do
+        opp = build(:holding_crm_opportunity, custom_attributes: { region: 'BR-RS', source_detail: 'cold-email' })
+        expect(opp).to be_valid
+      end
+
+      it 'rejeita custom_attributes > 16KB serializado' do
+        big_value = 'a' * 20_000
+        opp = build(:holding_crm_opportunity, custom_attributes: { bloat: big_value })
+        expect(opp).not_to be_valid
+        expect(opp.errors).to be_of_kind(:custom_attributes, :too_large)
+      end
+    end
   end
 
   describe 'enum status' do
