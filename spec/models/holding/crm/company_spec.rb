@@ -24,6 +24,22 @@ RSpec.describe Holding::Crm::Company do
         expect(build(:holding_crm_company, domain: nil)).to be_valid
       end
     end
+
+    describe 'additional_attributes size cap' do
+      let(:account) { create(:account) }
+
+      it 'aceita additional_attributes pequeno' do
+        c = build(:holding_crm_company, account: account, additional_attributes: { region: 'BR-RS', tier: 'gold' })
+        expect(c).to be_valid
+      end
+
+      it 'rejeita additional_attributes > 16KB serializado' do
+        big_value = 'a' * 20_000
+        c = build(:holding_crm_company, account: account, additional_attributes: { bloat: big_value })
+        expect(c).not_to be_valid
+        expect(c.errors).to be_of_kind(:additional_attributes, :too_large)
+      end
+    end
   end
 
   describe '#normalize_domain' do

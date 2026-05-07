@@ -44,12 +44,31 @@ class Holding::Crm::Company < ApplicationRecord
                    uniqueness: { scope: :account_id }
   validates :domain, format: { with: DOMAIN_REGEX }, allow_blank: true
 
+  # [2026-05-07] additional_attributes é jsonb open-schema (custom-fields
+  # bag por design — cada vila adiciona campos sem migration). Permit list
+  # do controller fica `{}` (sem allowlist de chaves) pra não bloquear o
+  # caso de uso. Cap de tamanho aqui (16KB serializado) protege contra
+  # client malicioso jogar 10MB no row. 16KB cobre largamente o uso esperado
+  # (dezenas de chaves curtas).
+  ADDITIONAL_ATTRIBUTES_MAX_BYTES = 16 * 1024
+
+  validate :additional_attributes_within_size_limit
+
   before_validation :normalize_domain
 
   after_create_commit :dispatch_created_event
   after_update_commit :dispatch_updated_event
 
   private
+
+  def additional_attributes_within_size_limit
+    return if additional_attributes.blank?
+
+    serialized_size = additional_attributes.to_json.bytesize
+    return if serialized_size <= ADDITIONAL_ATTRIBUTES_MAX_BYTES
+
+    errors.add(:additional_attributes, :too_large)
+  end
 
   def normalize_domain
     return if domain.blank?

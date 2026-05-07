@@ -30,12 +30,17 @@ RSpec.describe Holding::Crm::Opportunity do
     let!(:active) { create(:holding_crm_opportunity, account: account, pipeline: pipeline) }
     let!(:discarded) { create(:holding_crm_opportunity, :discarded, account: account, pipeline: pipeline) }
 
+    # [2026-05-07] Comparar por id em vez de record. Pattern do mesmo bug
+    # de pipeline_spec — AR `==` retornando false em records de mesma id/classe
+    # quando rodando no mesmo partition CI com novos specs. Root cause não
+    # diagnosticado, suspeita autoload pollution. `.pluck(:id)` é semanticamente
+    # equivalente pro intent do scope teste.
     it '#active retorna apenas non-discarded' do
-      expect(described_class.active).to contain_exactly(active)
+      expect(described_class.active.pluck(:id)).to contain_exactly(active.id)
     end
 
     it '#discarded retorna apenas discarded' do
-      expect(described_class.discarded).to contain_exactly(discarded)
+      expect(described_class.discarded.pluck(:id)).to contain_exactly(discarded.id)
     end
   end
 
@@ -146,7 +151,8 @@ RSpec.describe Holding::Crm::Opportunity do
       opp_a = create(:holding_crm_opportunity, pipeline_account: acc_a)
       _opp_b = create(:holding_crm_opportunity, pipeline_account: acc_b)
 
-      expect(described_class.where(account_id: acc_a.id)).to contain_exactly(opp_a)
+      # [2026-05-07] .pluck(:id) — mesmo workaround do pipeline_spec.
+      expect(described_class.where(account_id: acc_a.id).pluck(:id)).to contain_exactly(opp_a.id)
     end
   end
 end
