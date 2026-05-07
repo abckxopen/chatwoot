@@ -1,0 +1,9 @@
+# [2026-04-30] Locale isolado do CRM da holding (en). Ver holding_crm.pt.yml
+# pra contexto. Inglês como fallback.
+en:
+  errors:
+    messages:
+      only_one_default_per_account: "only one default pipeline allowed per account"
+      won_and_lost_cannot_coexist: "stage cannot be both won and lost"
+    crm:
+      feature_disabled: "CRM module is not enabled for this account. Ask your administrator."

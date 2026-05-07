@@ -241,3 +241,10 @@
   display_name: Advanced Assignment
   enabled: false
   premium: true
+
+# [2026-05-01] Feature flag `crm_pipeline` foi removida daqui. WHY:
+# Featurable do core armazena flags em int8 signed (max 63 bits úteis)
+# e o features.yml de upstream já tinha 63 entradas — adicionar a 64ª
+# overflowa no save. Substituído pela coluna `accounts.holding_crm_enabled`
+# (migration AddHoldingCrmEnabledToAccounts). Não recolocar aqui sem
+# resolver o limite no core primeiro.
