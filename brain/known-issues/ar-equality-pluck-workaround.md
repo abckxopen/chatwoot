@@ -1,77 +1,62 @@
-# AR `==` Returning False on Equal Records — Pluck Workaround
+# AR `==` Returning False on Equal Records — Zeitwerk Reload Race
 
-**Status:** P1 — investigate before slice 4 (Opportunities) lands or risk drift
+**Status:** ✅ RESOLVED 2026-05-07 (commit b4584ad5)
 **First seen:** 2026-05-07 PR #9 (slice 2 Stages)
-**Reaperition:** 2026-05-07 PR #10 (slice 3 Companies)
+**Fully resolved:** 2026-05-07 PR #12 (slice 5 Activities)
 
 ## Symptom
 
-In CI parallel test partition `backend-tests (16, 0)`, RSpec specs that compare ActiveRecord records via `eq([record1, record2])` or `contain_exactly(record)` fail deterministically with:
+In CI parallel test partition `backend-tests (16, 0)`, RSpec specs comparing ActiveRecord records via `eq([record1, record2])` or `contain_exactly(record)` failed deterministically:
 
 - `expected collection contained: [#<Holding::Crm::X id: N, ...>]`
-- `actual collection contained:    [#<Holding::Crm::X id: N, ...>]`
-- `the missing elements were:      [#<Holding::Crm::X id: N, ...>]`
-- `the extra elements were:        [#<Holding::Crm::X id: N, ...>]`
+- `actual collection contained:   [#<Holding::Crm::X id: N, ...>]`
+- `the missing elements were:     [#<Holding::Crm::X id: N, ...>]`
+- `the extra elements were:       [#<Holding::Crm::X id: N, ...>]`
 
-Same id, same class string, same attributes — yet `==` returns false. RSpec's `eq` and `contain_exactly` matchers fail because they use `==` for comparison.
+Same id, same FQN, but `==` returned false. Same symptom in `spec/lib/safe_fetch_spec.rb`: `raise_error(SafeFetch::InvalidUrlError)` failed with `expected SafeFetch::InvalidUrlError, got SafeFetch::InvalidUrlError`.
 
-## Affected files
+## Root Cause
 
-- `spec/models/holding/crm/pipeline_spec.rb` — slice 2 first hit
-  - Line 50 (`#defaults_first` scope test)
-  - Line 118 (tenancy isolation test)
-- `spec/models/holding/crm/opportunity_spec.rb` — slice 3 reapparition
-  - Line 33 (`#active` scope)
-  - Line 37 (`#discarded` scope)
-  - Line 143 (tenancy isolation)
-
-## Workaround applied
-
-Replace record comparison with id comparison + `.pluck(:id)`:
-
+`config/environments/test.rb` sets:
 ```ruby
-# Before
-expect(described_class.where(account_id: a.id)).to contain_exactly(record_a)
-
-# After
-expect(described_class.where(account_id: a.id).pluck(:id)).to contain_exactly(record_a.id)
+config.cache_classes = false
+config.eager_load = false
 ```
 
-`.pluck(:id)` is also a small efficiency win (`SELECT id` only, doesn't materialize records). Same pattern is used elsewhere in chatwoot (account_spec.rb, hook_spec.rb).
+Combined with Zeitwerk autoload, this means classes load on first reference and **can be reloaded between specs**. When reload happened mid-suite, two `Class` objects existed for the same FQN (e.g. `Holding::Crm::Pipeline` instance loaded for spec A vs reloaded constant referenced from spec B). RSpec's `eq` and `is_a?` matchers compare by class identity (`object_id`), so equal-by-name-and-id records returned false.
 
-## Hypotheses (untested)
+The CI parallel partition layout (16 shards) determined which specs landed together in the same process. As Phase 1 added more spec files, partition 0's contents shifted enough to expose this race deterministically.
 
-1. **Autoload pollution between specs in same partition.** RSpec random order means the new `crm_*_controller_spec.rb` files might be running before the affected model specs and leaving some constant resolution state divergent. AR `==` is `instance_of?(self.class) && id == other.id` — if `self.class` resolves to a different Class object between the local create and the relation-loaded record, `instance_of?` returns false. With Zeitwerk and `eager_load = true` in test env, this should NOT happen — but something is triggering it.
-2. **Class reloading within RSpec process.** Some test setup might be calling `Object.send(:remove_const, ...)` and re-autoloading. We don't do this directly but a gem might.
-3. **Spring / class_eval interaction.** Chatwoot uses Spring in dev but specs run without it. Verify in CI.
-4. **Rails 7.1 / Ruby 3.4 specific regression.** Less likely — would affect every chatwoot project, not just our fork.
+## Fix
 
-## Investigation steps (when this gets prioritized)
+Single fork-local file: `spec/support/abckxopen_eager_load.rb`:
 
-1. **Reproduce in isolation:** `bundle exec rspec spec/models/holding/crm/pipeline_spec.rb` standalone on the failing SHA. If it passes, it IS test-order pollution.
-2. **Bisect by adding diagnostic puts:**
-   ```ruby
-   puts "expected.class.object_id = #{record_a.class.object_id}"
-   puts "actual.class.object_id   = #{result.first.class.object_id}"
-   ```
-   If `object_id` differs, we have class duplication (Zeitwerk reload bug confirmed).
-3. **Run with `--seed N`** to find the spec ordering that triggers pollution.
-4. **Check `Spring.quiet` / `Spring.disable!`** in spec setup — if Spring is sneaking in.
-5. **Audit constants resolution** during the test run with `TracePoint.new(:class)` to see if `Holding::Crm::Pipeline` ever gets re-defined.
+```ruby
+RSpec.configure do |config|
+  config.before(:suite) do
+    Rails.application.eager_load!
+  end
+end
+```
 
-## Exit criteria for removing the workaround
+Auto-required by `spec/rails_helper.rb` line 30. Pre-loads every autoloadable class at suite boot — single `Class` object per FQN for the entire run. ~5s extra at boot, no upstream cherry-pick conflict (new file, fork-local naming prefix).
 
-When the root cause is identified and fixed:
-- All `.pluck(:id)` calls anchored with this issue note can revert to `eq([record])` / `contain_exactly(record)`.
-- This brain doc updated to "RESOLVED" with root cause + fix description.
-- Pattern stops appearing in slice 4+ specs.
+Upstream chatwoot has the same root cause but doesn't trigger the reload race in their default partition layout. Upstream issue same-flavor: ecdeb891 (#14139) was a partial fix at the spec-pinning level.
 
-## Anchors in code
+## What got reverted after the fix
 
-Each occurrence in spec files has an inline anchor (`# [2026-05-07] Comparar por id em vez de record. ...`) that cross-references this doc. When investigating, search for `Comparar por id` to find all sites.
+- `lib/safe_fetch.rb` defensive `require_relative` inside method (commit 72caba11) — redundant under eager_load, would have created cherry-pick conflict.
+- `.pluck(:id)` workarounds in pipeline_spec / opportunity_spec / activity_spec — back to idiomatic `eq([record])` / `contain_exactly(record)`.
 
-## Related
+## Postmortem value
 
-- Initial slice 2 commit: `d54705a` (workaround) + `87777b9` (anchor honesty)
-- Slice 3 commit: `4d358e0` (workaround applied to opportunity_spec)
-- Pre-merge simplify pass agents flagged this consistently as "real bug, not flake"
+The investigation hypotheses + diagnostic recipe (TracePoint, `--seed N` bisect, `class.object_id` check) remain useful for any future "same FQN, different Class" symptom. Not deleting this doc — keeping as reference for the next dev hitting a similar Zeitwerk surprise.
+
+## Anchor commits
+
+- `d54705a2` (slice 2): first `.pluck` workaround in pipeline_spec
+- `4d358e0a` (slice 3): same in opportunity_spec
+- `c18909cc` (slice 5): same in activity_spec
+- `72caba11` (slice 5): lib/safe_fetch.rb defensive require
+- `b4584ad5` (slice 5): root-cause fix via spec/support/abckxopen_eager_load.rb
+- `<this commit>` (slice 5): clean-up — workarounds reverted, brain doc marked RESOLVED

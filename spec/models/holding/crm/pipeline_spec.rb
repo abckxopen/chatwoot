@@ -55,18 +55,7 @@ RSpec.describe Holding::Crm::Pipeline do
 
       result = described_class.where(account: account).defaults_first
 
-      # [2026-05-07] Comparar por id em vez de por record. Slice 1 dessa spec
-      # passou em CI; slice 2 falhou determinísticamente com mesma id/classe
-      # nos 2 lados mas `==` retornando false (diff format também divergiu).
-      # ROOT CAUSE NÃO DIAGNOSTICADO — suspeita: pollution de autoload entre
-      # specs do partition (ordem aleatória) ao introduzir crm_stages_controller_spec
-      # no mesmo conjunto. TODO: investigar com `rspec --seed` reproduzível
-      # + check `default_pipe.class.object_id == result.first.class.object_id`
-      # antes de cascatear o mesmo padrão pra slices 3-5. `.pluck(:id)` é
-      # semanticamente equivalente pro intent (validar ordem do scope) e
-      # ainda evita materializar records — convenção da codebase
-      # (account_spec.rb, hook_spec.rb).
-      expect(result.pluck(:id)).to eq([default_pipe.id, first_position.id, regular.id])
+      expect(result).to eq([default_pipe, first_position, regular])
     end
   end
 
@@ -126,9 +115,7 @@ RSpec.describe Holding::Crm::Pipeline do
 
       result = described_class.where(account_id: account_a.id)
 
-      # [2026-05-07] Mesmo padrão da spec `defaults_first` acima — root cause
-      # do `==` failure não diagnosticado, ver TODO lá.
-      expect(result.pluck(:id)).to contain_exactly(pipe_a.id)
+      expect(result).to contain_exactly(pipe_a)
     end
   end
 end
