@@ -240,7 +240,11 @@ RSpec.describe 'CRM Activities API', type: :request do
     end
 
     it 'dispara evento ACTIVITY_COMPLETED' do
-      allow(Rails.configuration.dispatcher).to receive(:dispatch).and_call_original
+      # [2026-05-07] Spy sem and_call_original — evita disparar listeners
+      # reais que pode reabrir constantes via Zeitwerk em parallel CI.
+      # Cobertura de comportamento real do listener fica em
+      # spec/models/holding/crm/activity_spec.rb (model-level dispatch).
+      allow(Rails.configuration.dispatcher).to receive(:dispatch)
 
       patch "/api/v1/accounts/#{account.id}/crm_opportunities/#{opportunity.id}/activities/#{activity.id}/complete",
             headers: admin.create_new_auth_token, as: :json
