@@ -55,7 +55,13 @@ RSpec.describe Holding::Crm::Pipeline do
 
       result = described_class.where(account: account).defaults_first
 
-      expect(result).to eq([default_pipe, first_position, regular])
+      # [2026-05-07] Comparar por id em vez de por record. Em CI com parallel
+      # test partitioning + Rails 7.1 + Ruby 3.4, AR record `==` demonstrou
+      # divergência entre instâncias mesma id/classe (diff format vs ==
+      # behaviour) gerando falha intermitente em `eq([record1, record2])`.
+      # `.map(&:id)` é semanticamente equivalente pro intent do teste
+      # (validar ordem do scope).
+      expect(result.map(&:id)).to eq([default_pipe.id, first_position.id, regular.id])
     end
   end
 
@@ -115,7 +121,9 @@ RSpec.describe Holding::Crm::Pipeline do
 
       result = described_class.where(account_id: account_a.id)
 
-      expect(result).to contain_exactly(pipe_a)
+      # [2026-05-07] Comparar por id pelo mesmo motivo da spec acima — robustez
+      # contra flake AR `==` em parallel CI partition.
+      expect(result.map(&:id)).to contain_exactly(pipe_a.id)
     end
   end
 end
