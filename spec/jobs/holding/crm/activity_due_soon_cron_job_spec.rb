@@ -87,6 +87,19 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
     end
 
     context 'idempotency' do
+      # [2026-05-16] Rails.cache em test env é :null_store por padrão (config/environments/test.rb).
+      # null_store faz cache.write virar no-op e cache.exist? sempre retornar false — ou seja,
+      # recently_notified? sempre false, ambos os performs disparam, e a asserção de TTL falha.
+      # Trocamos por MemoryStore só nesse context pra testar idempotência real.
+      before do
+        @cache_original = Rails.cache
+        allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+      end
+
+      after do
+        allow(Rails).to receive(:cache).and_return(@cache_original)
+      end
+
       let!(:activity_due_soon) do
         create(:holding_crm_activity, :due_soon, opportunity: opportunity, account: account)
       end
@@ -108,20 +121,26 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
     end
 
     context 'structured logger' do
-      it 'emite eventos start e complete com contadores' do
+      it 'emite eventos start + dispatched + complete com contadores' do
         create(:holding_crm_activity, :due_soon, opportunity: opportunity, account: account)
 
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.due_soon.cron.start', window_hours: 24)
-        )
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.due_soon.dispatched')
-        )
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.due_soon.cron.complete', dispatched: 1, skipped: 0)
-        )
+        # [2026-05-16] Spy pattern (allow + have_received) ao invés de strict expect-receive:
+        # Rails.logger.info recebe chamadas de framework (autoload, ActiveJob, dispatcher).
+        # Strict mock quebra em qualquer call incidental. Spy + and_call_original deixa passar
+        # tudo e asserciona só a chamada que importa.
+        allow(Rails.logger).to receive(:info).and_call_original
 
         described_class.perform_now
+
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.due_soon.cron.start', window_hours: 24)
+        )
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.due_soon.dispatched')
+        )
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.due_soon.cron.complete', dispatched: 1, skipped: 0)
+        )
       end
     end
   end

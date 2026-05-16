@@ -69,6 +69,18 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
     end
 
     context 'idempotency' do
+      # [2026-05-16] Mesma razão do due_soon spec: Rails.cache é :null_store em test env,
+      # então cache.write é no-op e cache.exist? sempre retorna false. Swap pra MemoryStore
+      # só nesse context pra testar idempotência real (TTL + dedup do segundo perform).
+      before do
+        @cache_original = Rails.cache
+        allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
+      end
+
+      after do
+        allow(Rails).to receive(:cache).and_return(@cache_original)
+      end
+
       let!(:overdue_activity) do
         create(:holding_crm_activity, :overdue, opportunity: opportunity, account: account)
       end
@@ -90,20 +102,25 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
     end
 
     context 'structured logger' do
-      it 'emite eventos start e complete com contadores' do
+      it 'emite eventos start + dispatched + complete com contadores' do
         create(:holding_crm_activity, :overdue, opportunity: opportunity, account: account)
 
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.overdue.cron.start')
-        )
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.overdue.dispatched')
-        )
-        expect(Rails.logger).to receive(:info).with(
-          hash_including(event: 'crm.activity.overdue.cron.complete', dispatched: 1, skipped: 0)
-        )
+        # [2026-05-16] Spy pattern — ver razão completa no spec do due_soon.
+        # tl;dr: Rails.logger.info recebe chamadas incidentais de framework;
+        # strict mock quebra. allow + have_received + and_call_original é seguro.
+        allow(Rails.logger).to receive(:info).and_call_original
 
         described_class.perform_now
+
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.overdue.cron.start')
+        )
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.overdue.dispatched')
+        )
+        expect(Rails.logger).to have_received(:info).with(
+          hash_including(event: 'crm.activity.overdue.cron.complete', dispatched: 1, skipped: 0)
+        )
       end
     end
   end

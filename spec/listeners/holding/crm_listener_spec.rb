@@ -91,7 +91,15 @@ RSpec.describe Holding::CrmListener do
     let(:event) { build_event(Holding::Crm::Events::ACTIVITY_DUE_SOON, activity: activity) }
 
     it 'loga evento estruturado com dados da activity' do
-      expect(Rails.logger).to receive(:info).with(
+      # [2026-05-16] Spy pattern (allow + have_received) ao invés de strict expect-receive:
+      # Rails.logger.info recebe chamadas de framework (autoload, ActiveJob, dispatcher).
+      # Strict mock quebra em qualquer call incidental. Spy + and_call_original deixa passar
+      # tudo e asserciona só a chamada que importa.
+      allow(Rails.logger).to receive(:info).and_call_original
+
+      listener.crm_activity_due_soon(event)
+
+      expect(Rails.logger).to have_received(:info).with(
         hash_including(
           event: 'crm.activity.due_soon.received',
           activity_id: activity.id,
@@ -99,8 +107,6 @@ RSpec.describe Holding::CrmListener do
           assignee_id: assignee.id
         )
       )
-
-      listener.crm_activity_due_soon(event)
     end
 
     it 'não raise quando activity ausente do payload' do
@@ -117,7 +123,12 @@ RSpec.describe Holding::CrmListener do
     let(:event) { build_event(Holding::Crm::Events::ACTIVITY_OVERDUE, activity: activity) }
 
     it 'loga evento estruturado com dados da activity' do
-      expect(Rails.logger).to receive(:info).with(
+      # [2026-05-16] Spy pattern — ver razão completa no describe acima (#crm_activity_due_soon).
+      allow(Rails.logger).to receive(:info).and_call_original
+
+      listener.crm_activity_overdue(event)
+
+      expect(Rails.logger).to have_received(:info).with(
         hash_including(
           event: 'crm.activity.overdue.received',
           activity_id: activity.id,
@@ -125,8 +136,6 @@ RSpec.describe Holding::CrmListener do
           assignee_id: assignee.id
         )
       )
-
-      listener.crm_activity_overdue(event)
     end
 
     it 'não raise quando activity ausente do payload' do
