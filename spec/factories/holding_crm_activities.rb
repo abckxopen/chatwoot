@@ -19,6 +19,14 @@ FactoryBot.define do
       completed_at { nil }
     end
 
+    # [2026-05-16] Phase 2 slice 3 — activity dentro da janela do
+    # ActivityDueSoonCronJob (now..now+24h). 1h pra ficar bem no meio
+    # da janela e não esbarrar em race com Time.zone.now sliding.
+    trait :due_soon do
+      due_at { 1.hour.from_now }
+      completed_at { nil }
+    end
+
     trait :linked_to_matrix do
       matrix_task_id { 'matrix-task-uuid-fake' }
     end

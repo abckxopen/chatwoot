@@ -68,3 +68,17 @@ remove_orphan_conversations_job:
   cron: '0 */12 * * *'
   class: 'Internal::RemoveOrphanConversationsJob'
   queue: housekeeping
+
+# [2026-05-16] CRM Phase 2 slice 3 — varre activities com due_at em [now, now+24h]
+# dispara crm.activity.due_soon event por activity (1×/hora).
+crm_activity_due_soon_cron_job:
+  cron: '0 * * * *'
+  class: 'Holding::Crm::ActivityDueSoonCronJob'
+  queue: scheduled_jobs
+
+# [2026-05-16] CRM Phase 2 slice 3 — varre activities overdue (due_at<now,
+# completed_at IS NULL) dispara crm.activity.overdue event (1×/dia, 09 UTC).
+crm_activity_overdue_cron_job:
+  cron: '0 9 * * *'
+  class: 'Holding::Crm::ActivityOverdueCronJob'
+  queue: scheduled_jobs
