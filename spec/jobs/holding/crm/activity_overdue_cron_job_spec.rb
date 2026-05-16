@@ -41,7 +41,7 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
     end
 
     context 'when activity foi completed (mesmo que due_at no passado)' do
-      let!(:completed_past_activity) do
+      before do
         create(:holding_crm_activity, :completed, opportunity: opportunity, account: account, due_at: 3.days.ago)
       end
 
@@ -55,7 +55,7 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
     end
 
     context 'when due_at é no futuro (due_soon ou além)' do
-      let!(:future_activity) do
+      before do
         create(:holding_crm_activity, opportunity: opportunity, account: account, due_at: 2.hours.from_now)
       end
 
@@ -68,17 +68,12 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
       end
     end
 
-    context 'idempotency' do
+    context 'with idempotency cache active' do
       # [2026-05-16] Mesma razão do due_soon spec: Rails.cache é :null_store em test env,
-      # então cache.write é no-op e cache.exist? sempre retorna false. Swap pra MemoryStore
-      # só nesse context pra testar idempotência real (TTL + dedup do segundo perform).
+      # então cache.write é no-op e cache.exist? sempre retorna false. Stub pra MemoryStore
+      # só nesse context. RSpec limpa stubs após cada example, sem after necessário.
       before do
-        @cache_original = Rails.cache
         allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
-      end
-
-      after do
-        allow(Rails).to receive(:cache).and_return(@cache_original)
       end
 
       let!(:overdue_activity) do
@@ -101,7 +96,7 @@ RSpec.describe Holding::Crm::ActivityOverdueCronJob do
       end
     end
 
-    context 'structured logger' do
+    context 'when emitting structured logs' do
       it 'emite eventos start + dispatched + complete com contadores' do
         create(:holding_crm_activity, :overdue, opportunity: opportunity, account: account)
 

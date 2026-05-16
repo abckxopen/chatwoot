@@ -45,7 +45,7 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
     end
 
     context 'when activity já foi completed' do
-      let!(:completed_activity) do
+      before do
         create(:holding_crm_activity, :completed, opportunity: opportunity, account: account, due_at: 1.hour.from_now)
       end
 
@@ -59,7 +59,7 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
     end
 
     context 'when due_at é mais de 24h à frente' do
-      let!(:future_activity) do
+      before do
         create(:holding_crm_activity, opportunity: opportunity, account: account, due_at: 48.hours.from_now)
       end
 
@@ -73,7 +73,7 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
     end
 
     context 'when due_at já passou (overdue, não due_soon)' do
-      let!(:overdue_activity) do
+      before do
         create(:holding_crm_activity, :overdue, opportunity: opportunity, account: account)
       end
 
@@ -86,18 +86,13 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
       end
     end
 
-    context 'idempotency' do
+    context 'with idempotency cache active' do
       # [2026-05-16] Rails.cache em test env é :null_store por padrão (config/environments/test.rb).
       # null_store faz cache.write virar no-op e cache.exist? sempre retornar false — ou seja,
       # recently_notified? sempre false, ambos os performs disparam, e a asserção de TTL falha.
-      # Trocamos por MemoryStore só nesse context pra testar idempotência real.
+      # Stub pra MemoryStore só nesse context. RSpec limpa stubs após cada example, sem after necessário.
       before do
-        @cache_original = Rails.cache
         allow(Rails).to receive(:cache).and_return(ActiveSupport::Cache::MemoryStore.new)
-      end
-
-      after do
-        allow(Rails).to receive(:cache).and_return(@cache_original)
       end
 
       let!(:activity_due_soon) do
@@ -120,7 +115,7 @@ RSpec.describe Holding::Crm::ActivityDueSoonCronJob do
       end
     end
 
-    context 'structured logger' do
+    context 'when emitting structured logs' do
       it 'emite eventos start + dispatched + complete com contadores' do
         create(:holding_crm_activity, :due_soon, opportunity: opportunity, account: account)
 
