@@ -36,7 +36,7 @@ Razão: stack único, controle total da rebase, sem segundo Rails rodando em par
 - `Holding::CrmNotifyMatrixJob` — egress pra Matrix API (one-way).
 - `Holding::Crm::ActivityDueSoonCronJob` (1×/h) + `Holding::Crm::ActivityOverdueCronJob` (1×/d) herdando de `Holding::Crm::ActivityCronJobBase`.
 
-### Migrations (6)
+### Migrations (7)
 - `20260430045000_create_crm_pipelines.rb`
 - `20260430045001_create_crm_stages.rb`
 - `20260430045002_create_crm_companies.rb`
@@ -93,7 +93,7 @@ Razão: stack único, controle total da rebase, sem segundo Rails rodando em par
 - **`status` REMOVIDO da permit list de Opportunity#update** — mudança única via `#move_to_stage` pra evitar inconsistência `opp.status=won` mas `stage.won=false`.
 - **`probability nil → 50`** no forecast — fallback neutro, default neutro do schema antigo era 0 (default mantido pra valores legados).
 - **`value` formatado como string `"%.2f"`** em reports — payload JSON com BigDecimal vira `"0.45e3"` em alguns serializers (Oj), Float perde precisão. Sprintf garante shape estável pro frontend parsear.
-- **`opportunities_count_aggr`** alias em CompaniesController#index — left_join + group em vez de N+1 por `company.opportunities.size` na jbuilder. Evita counter_cache (overkill).
+- **`opportunities_count_aggr`** alias em CompaniesController#index — left_join + group em vez de N+1 por `company.opportunities.size` na jbuilder. Evita counter_cache (overkill). **Inclui discarded by-design** — UI mostra contagem total da company (incluindo soft-deleted), filtragem por status é responsabilidade do caller via list endpoint dedicado.
 - **Partial indexes `(account_id, won_at) WHERE status=1` e `(account_id, lost_at) WHERE status=2`** (migration 173731) — bate exato o predicado de `agent_performance`.
 - **`due_at` ordering com `Arel.sql('due_at ASC NULLS LAST, id ASC')`** em activities — activities sem due_at vão pro fim, ordenação determinística com `id ASC` como tie-break.
 
