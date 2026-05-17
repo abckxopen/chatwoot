@@ -4,6 +4,18 @@
     "PAGE_SUBHEADER": "Pipelines comerciais",
     "EMPTY_STATE": "Nenhum pipeline criado ainda. Crie no painel de admin.",
     "LOADING": "Carregando pipelines...",
-    "RETRY": "Tentar novamente"
+    "RETRY": "Tentar novamente",
+    "OPEN_KANBAN": "Abrir kanban",
+    "KANBAN": {
+      "BACK_TO_HOME": "Voltar para CRM",
+      "OPPORTUNITIES_COUNT": "{n} oportunidade | {n} oportunidades",
+      "STAGE_TOTAL": "Total: {value}",
+      "EMPTY_STAGE": "Sem oportunidades",
+      "EMPTY_PIPELINE": "Pipeline ainda não tem stages. Crie no painel de admin.",
+      "LOADING": "Carregando kanban...",
+      "PIPELINE_NOT_FOUND": "Pipeline não encontrado.",
+      "UNASSIGNED": "—",
+      "CARD_VALUE_PLACEHOLDER": "Sem valor"
+    }
   }
 }
