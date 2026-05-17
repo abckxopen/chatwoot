@@ -28,7 +28,7 @@
    Account.where(holding_crm_enabled: true).pluck(:id, :name)
    ```
 
-3. **Sidekiq cron entries presentes?** Conferir `config/schedule.yml` em produção (deve ter `holding_crm_activity_due_soon` e `holding_crm_activity_overdue`). Em runtime:
+3. **Sidekiq cron entries presentes?** Conferir `config/schedule.yml` em produção (deve ter `crm_activity_due_soon_cron_job` e `crm_activity_overdue_cron_job`). Em runtime:
    ```bash
    # Se usando sidekiq-cron, no console:
    Sidekiq::Cron::Job.all.map(&:name).grep(/crm/)
@@ -69,7 +69,7 @@ Padrão atual (validado em chatwoot v0.2.1 deploy em 2026-04-30):
    kubectl -n chatwoot exec deploy/chatwoot-sidekiq -- bundle exec rails runner \
      'puts Sidekiq::Cron::Job.all.map(&:name).grep(/crm/)'
    ```
-   Esperado: `holding_crm_activity_due_soon`, `holding_crm_activity_overdue`.
+   Esperado: `crm_activity_due_soon_cron_job`, `crm_activity_overdue_cron_job`.
 
 ## Smoke test pós-deploy
 
