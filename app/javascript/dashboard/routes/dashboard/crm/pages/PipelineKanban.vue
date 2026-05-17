@@ -59,18 +59,12 @@ const isLoading = computed(
     opportunitiesUiFlags.value.fetchingList
 );
 
-// [2026-05-17] Gated by hasMounted pra não renderizar "não encontrado" antes
+// [2026-05-17] Gated by hasMounted pra não renderizar estados terminais antes
 // do primeiro dispatch resolver (initial render tem isLoading=false).
-const pipelineMissing = computed(
-  () => hasMounted.value && !isLoading.value && !pipeline.value
-);
-
+const isReady = computed(() => hasMounted.value && !isLoading.value);
+const pipelineMissing = computed(() => isReady.value && !pipeline.value);
 const isPipelineEmpty = computed(
-  () =>
-    hasMounted.value &&
-    !isLoading.value &&
-    !!pipeline.value &&
-    stages.value.length === 0
+  () => isReady.value && !!pipeline.value && stages.value.length === 0
 );
 
 const formatCurrency = (value, currency) => {
