@@ -26,9 +26,7 @@ export const getters = {
   },
   getCrmActivitiesForOpportunity: _state => opportunityId => {
     const oid = Number(opportunityId);
-    return _state.records.filter(
-      record => record.crm_opportunity_id === oid
-    );
+    return _state.records.filter(record => record.crm_opportunity_id === oid);
   },
   getUIFlags(_state) {
     return _state.uiFlags;
@@ -84,10 +82,7 @@ export const actions = {
     }
   },
 
-  delete: async function deleteCrmActivity(
-    { commit },
-    { opportunityId, id }
-  ) {
+  delete: async function deleteCrmActivity({ commit }, { opportunityId, id }) {
     commit(types.default.SET_CRM_ACTIVITIES_UI_FLAG, { deletingItem: true });
     try {
       await CrmActivitiesAPI.delete(opportunityId, id);

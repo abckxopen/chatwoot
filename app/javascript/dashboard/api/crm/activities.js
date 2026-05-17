@@ -20,8 +20,14 @@ class CrmActivities extends ApiClient {
     super('crm_opportunities', { accountScoped: true });
   }
 
+  // [2026-05-17] Guard contra opportunityId nulo — mirror do pattern de stages.js.
+  // Sem isso a URL vira `.../crm_opportunities/undefined/activities` que 404
+  // cripticamente. Falha cedo com mensagem clara facilita debug.
   // eslint-disable-next-line class-methods-use-this
   activitiesUrl(opportunityId) {
+    if (!opportunityId) {
+      throw new Error('CrmActivities API: opportunityId is required');
+    }
     return `${this.url}/${opportunityId}/activities`;
   }
 
