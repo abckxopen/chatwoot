@@ -59,6 +59,18 @@ const isPipelineEmpty = computed(
   () => !isLoading.value && !!pipeline.value && stages.value.length === 0
 );
 
+const formatCurrency = (value, currency) => {
+  try {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency,
+    }).format(value);
+  } catch {
+    // Currency inválido (BRL fallback) — Intl rejeita ISO desconhecido.
+    return `${currency} ${Number(value).toFixed(2)}`;
+  }
+};
+
 // [2026-05-17] Soma client-side: backend não expõe endpoint /stages/:id/totals
 // e refazer roundtrip por stage seria pior. Lista de opps já está em memória.
 // Se a base crescer pra milhares de cards por pipeline, mover pra getter
@@ -72,18 +84,6 @@ const stageTotal = stageId => {
   const currency = opps[0].currency || 'BRL';
   const sum = opps.reduce((acc, opp) => acc + (Number(opp.value) || 0), 0);
   return formatCurrency(sum, currency);
-};
-
-const formatCurrency = (value, currency) => {
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency,
-    }).format(value);
-  } catch {
-    // Currency inválido (BRL fallback) — Intl rejeita ISO desconhecido.
-    return `${currency} ${Number(value).toFixed(2)}`;
-  }
 };
 
 const formatOpportunityValue = opp => {
@@ -111,8 +111,7 @@ const assigneeInitials = opp => {
           :to="{ name: 'crm_home' }"
           class="no-underline text-n-brand text-xs font-medium"
         >
-          <span>←</span>
-          <span class="ml-1">{{ t('CRM_PIPELINE.KANBAN.BACK_TO_HOME') }}</span>
+          {{ t('CRM_PIPELINE.KANBAN.BACK_TO_HOME') }}
         </router-link>
         <h1 class="text-xl font-semibold text-n-slate-12 truncate">
           {{ pipeline ? pipeline.name : t('CRM_PIPELINE.PAGE_HEADER') }}

@@ -93,8 +93,7 @@ onMounted(fetchPipelines);
             }"
             class="no-underline text-n-brand text-sm font-medium"
           >
-            <span>{{ t('CRM_PIPELINE.OPEN_KANBAN') }}</span>
-            <span class="ml-2">→</span>
+            {{ t('CRM_PIPELINE.OPEN_KANBAN') }}
           </router-link>
         </footer>
       </article>
