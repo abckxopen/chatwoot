@@ -26,6 +26,9 @@ import conversationSearch from './modules/conversationSearch';
 import conversationStats from './modules/conversationStats';
 import conversationTypingStatus from './modules/conversationTypingStatus';
 import conversationWatchers from './modules/conversationWatchers';
+import crmOpportunities from './modules/crm/opportunities';
+import crmPipelines from './modules/crm/pipelines';
+import crmStages from './modules/crm/stages';
 import csat from './modules/csat';
 import customRole from './modules/customRole';
 import customViews from './modules/customViews';
@@ -89,6 +92,9 @@ export default createStore({
     conversationStats,
     conversationTypingStatus,
     conversationWatchers,
+    crmOpportunities,
+    crmPipelines,
+    crmStages,
     csat,
     customRole,
     customViews,
