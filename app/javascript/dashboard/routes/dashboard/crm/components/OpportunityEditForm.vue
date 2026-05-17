@@ -66,10 +66,7 @@ const submit = () => {
 </script>
 
 <template>
-  <form
-    class="grid grid-cols-1 md:grid-cols-2 gap-3"
-    @submit.prevent="submit"
-  >
+  <form class="grid grid-cols-1 md:grid-cols-2 gap-3" @submit.prevent="submit">
     <label class="flex flex-col gap-1 text-xs text-n-slate-11 md:col-span-2">
       {{ t('CRM_PIPELINE.OPPORTUNITY.NAME_LABEL') }}
       <input

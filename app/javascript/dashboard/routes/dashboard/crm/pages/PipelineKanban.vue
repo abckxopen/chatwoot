@@ -6,10 +6,7 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
-import {
-  formatCurrency,
-  formatOpportunityValue,
-} from '../helpers/formatters';
+import { formatCurrency, formatOpportunityValue } from '../helpers/formatters';
 
 const props = defineProps({
   pipelineId: { type: [String, Number], required: true },
