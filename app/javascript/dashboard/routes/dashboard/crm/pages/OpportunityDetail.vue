@@ -1,11 +1,13 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
 import ActivityList from '../components/ActivityList.vue';
+import OpportunityEditForm from '../components/OpportunityEditForm.vue';
+import { formatOpportunityValue } from '../helpers/formatters';
 
 const props = defineProps({
   opportunityId: { type: [String, Number], required: true },
@@ -44,27 +46,9 @@ const company = computed(() => {
 // flash de "Oportunidade não encontrada" antes do show() resolver.
 const hasMounted = ref(false);
 
-// [2026-05-17] formatCurrency declarada antes de QUALQUER computed/método
-// que use — slice 3 quebrou lint (no-use-before-define) por declarar abaixo.
-const formatCurrency = (value, currency) => {
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency,
-    }).format(value);
-  } catch {
-    return `${currency} ${Number(value).toFixed(2)}`;
-  }
-};
-
-const formattedValue = computed(() => {
-  if (!opportunity.value) return '';
-  const opp = opportunity.value;
-  if (opp.value === null || opp.value === undefined) {
-    return t('CRM_PIPELINE.KANBAN.CARD_VALUE_PLACEHOLDER');
-  }
-  return formatCurrency(Number(opp.value), opp.currency || 'BRL');
-});
+const formattedValue = computed(() =>
+  opportunity.value ? formatOpportunityValue(opportunity.value, t) : ''
+);
 
 const formattedCloseDate = computed(() => {
   if (!opportunity.value?.expected_close_date) {
@@ -133,49 +117,16 @@ const isMoving = computed(() => opportunitiesUiFlags.value.movingToStage);
 const isReady = computed(() => hasMounted.value && !isLoading.value);
 const opportunityMissing = computed(() => isReady.value && !opportunity.value);
 
-// Edit form state
+// [2026-05-17] Edit form extraído pra OpportunityEditForm.vue — parent só
+// gerencia o toggle e o dispatch. Form state vive no child (reactive local).
 const isEditing = ref(false);
-const editForm = reactive({
-  name: '',
-  value: '',
-  currency: 'BRL',
-  expected_close_date: '',
-  probability: '',
-});
 
-const startEdit = () => {
-  if (!opportunity.value) return;
-  const opp = opportunity.value;
-  editForm.name = opp.name || '';
-  editForm.value = opp.value ?? '';
-  editForm.currency = opp.currency || 'BRL';
-  // [2026-05-17] expected_close_date vem como ISO date (jbuilder usa &.iso8601);
-  // input type="date" precisa "YYYY-MM-DD" — split funciona pois ISO date pode
-  // ou não ter time (Date#iso8601 sem args é só data).
-  editForm.expected_close_date = opp.expected_close_date
-    ? String(opp.expected_close_date).slice(0, 10)
-    : '';
-  editForm.probability = opp.probability ?? '';
-  isEditing.value = true;
-};
-
-const cancelEdit = () => {
-  isEditing.value = false;
-};
-
-const submitEdit = async () => {
-  if (!editForm.name.trim()) return;
-  const payload = {
-    id: opportunityIdNum.value,
-    name: editForm.name.trim(),
-    value: editForm.value === '' ? null : Number(editForm.value),
-    currency: editForm.currency,
-    expected_close_date: editForm.expected_close_date || null,
-    probability:
-      editForm.probability === '' ? null : Number(editForm.probability),
-  };
+const onEditSave = async payload => {
   try {
-    await store.dispatch('crmOpportunities/update', payload);
+    await store.dispatch('crmOpportunities/update', {
+      id: opportunityIdNum.value,
+      ...payload,
+    });
     isEditing.value = false;
   } catch (error) {
     useAlert(t('CRM_PIPELINE.OPPORTUNITY.UPDATE_ERROR'));
@@ -315,83 +266,19 @@ const discard = async () => {
             v-if="!isEditing"
             type="button"
             class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12 hover:bg-n-alpha-2"
-            @click="startEdit"
+            @click="isEditing = true"
           >
             {{ t('CRM_PIPELINE.OPPORTUNITY.EDIT_BUTTON') }}
           </button>
         </header>
 
-        <form
+        <OpportunityEditForm
           v-if="isEditing"
-          class="grid grid-cols-1 md:grid-cols-2 gap-3"
-          @submit.prevent="submitEdit"
-        >
-          <label
-            class="flex flex-col gap-1 text-xs text-n-slate-11 md:col-span-2"
-          >
-            {{ t('CRM_PIPELINE.OPPORTUNITY.NAME_LABEL') }}
-            <input
-              v-model="editForm.name"
-              type="text"
-              required
-              class="px-2 py-1.5 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-            {{ t('CRM_PIPELINE.OPPORTUNITY.VALUE_LABEL') }}
-            <input
-              v-model="editForm.value"
-              type="number"
-              step="0.01"
-              min="0"
-              class="px-2 py-1.5 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-            {{ t('CRM_PIPELINE.OPPORTUNITY.CURRENCY_LABEL') }}
-            <input
-              v-model="editForm.currency"
-              type="text"
-              maxlength="3"
-              class="px-2 py-1.5 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12 uppercase"
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-            {{ t('CRM_PIPELINE.OPPORTUNITY.CLOSE_DATE_LABEL') }}
-            <input
-              v-model="editForm.expected_close_date"
-              type="date"
-              class="px-2 py-1.5 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-            />
-          </label>
-          <label class="flex flex-col gap-1 text-xs text-n-slate-11">
-            {{ t('CRM_PIPELINE.OPPORTUNITY.PROBABILITY_LABEL') }}
-            <input
-              v-model="editForm.probability"
-              type="number"
-              min="0"
-              max="100"
-              step="1"
-              class="px-2 py-1.5 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-            />
-          </label>
-          <div class="flex justify-end gap-2 md:col-span-2">
-            <button
-              type="button"
-              class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12"
-              @click="cancelEdit"
-            >
-              {{ t('CRM_PIPELINE.OPPORTUNITY.CANCEL_BUTTON') }}
-            </button>
-            <button
-              type="submit"
-              :disabled="isUpdating || !editForm.name.trim()"
-              class="px-3 py-1.5 text-xs font-medium rounded-md bg-n-brand text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {{ t('CRM_PIPELINE.OPPORTUNITY.SAVE_BUTTON') }}
-            </button>
-          </div>
-        </form>
+          :opportunity="opportunity"
+          :is-submitting="isUpdating"
+          @save="onEditSave"
+          @cancel="isEditing = false"
+        />
 
         <dl v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
           <div class="flex flex-col gap-0.5">
@@ -561,7 +448,7 @@ const discard = async () => {
           @submit.prevent="markLost"
         >
           <label class="flex-1 flex flex-col gap-1 text-xs text-n-slate-11">
-            {{ t('CRM_PIPELINE.OPPORTUNITY.LOSE_BUTTON') }}
+            {{ t('CRM_PIPELINE.OPPORTUNITY.LOST_REASON_LABEL') }}
             <input
               v-model="lostReason"
               type="text"
@@ -573,7 +460,7 @@ const discard = async () => {
             :disabled="isUpdating"
             class="px-3 py-1.5 text-xs font-medium rounded-md bg-n-ruby-9 text-white hover:opacity-90 disabled:opacity-50"
           >
-            {{ t('CRM_PIPELINE.OPPORTUNITY.LOSE_BUTTON') }}
+            {{ t('CRM_PIPELINE.OPPORTUNITY.CONFIRM_LOSE_BUTTON') }}
           </button>
         </form>
       </section>

@@ -282,7 +282,11 @@ const kindBadgeClass = kind =>
           class="mt-1 cursor-pointer disabled:cursor-not-allowed"
           :checked="!!activity.completed_at"
           :disabled="!!activity.completed_at || isCompleting"
-          :aria-label="t('CRM_PIPELINE.ACTIVITIES.COMPLETE_BUTTON')"
+          :aria-label="
+            activity.completed_at
+              ? t('CRM_PIPELINE.ACTIVITIES.COMPLETED_LABEL')
+              : t('CRM_PIPELINE.ACTIVITIES.COMPLETE_BUTTON')
+          "
           @change="completeActivity(activity)"
         />
         <div class="flex flex-col gap-1 min-w-0 flex-1">

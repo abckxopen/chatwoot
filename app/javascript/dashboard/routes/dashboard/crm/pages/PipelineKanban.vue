@@ -6,6 +6,10 @@ import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
+import {
+  formatCurrency,
+  formatOpportunityValue,
+} from '../helpers/formatters';
 
 const props = defineProps({
   pipelineId: { type: [String, Number], required: true },
@@ -73,18 +77,6 @@ const isPipelineEmpty = computed(
   () => isReady.value && !!pipeline.value && stages.value.length === 0
 );
 
-const formatCurrency = (value, currency) => {
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency,
-    }).format(value);
-  } catch {
-    // Currency inválido (BRL fallback) — Intl rejeita ISO desconhecido.
-    return `${currency} ${Number(value).toFixed(2)}`;
-  }
-};
-
 // [2026-05-17] Soma client-side: backend não expõe endpoint /stages/:id/totals
 // e refazer roundtrip por stage seria pior. Lista de opps já está em memória.
 // Se a base crescer pra milhares de cards por pipeline, mover pra getter
@@ -100,12 +92,7 @@ const stageTotal = stageId => {
   return formatCurrency(sum, currency);
 };
 
-const formatOpportunityValue = opp => {
-  if (opp.value === null || opp.value === undefined) {
-    return t('CRM_PIPELINE.KANBAN.CARD_VALUE_PLACEHOLDER');
-  }
-  return formatCurrency(Number(opp.value), opp.currency || 'BRL');
-};
+const formatOppValue = opp => formatOpportunityValue(opp, t);
 
 const assigneeInitials = opp => {
   // [2026-05-17] Serializer só expõe assignee_id, não embed completo. Slice 3
@@ -298,7 +285,7 @@ const handleChange = async (event, targetStageId) => {
                 class="flex justify-between items-center gap-2 text-xs text-n-slate-11"
               >
                 <span class="font-medium text-n-slate-12">
-                  {{ formatOpportunityValue(opp) }}
+                  {{ formatOppValue(opp) }}
                 </span>
                 <span
                   class="px-2 py-0.5 rounded-full bg-n-alpha-2 text-n-slate-11"

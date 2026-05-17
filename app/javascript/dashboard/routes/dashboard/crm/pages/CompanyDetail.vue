@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
+import { formatOpportunityValue } from '../helpers/formatters';
 
 const props = defineProps({
   companyId: { type: [String, Number], required: true },
@@ -74,23 +75,7 @@ const formatCreatedAt = value => {
   }
 };
 
-const formatCurrency = (value, currency) => {
-  try {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency,
-    }).format(value);
-  } catch {
-    return `${currency} ${Number(value).toFixed(2)}`;
-  }
-};
-
-const formatOpportunityValue = opp => {
-  if (opp.value === null || opp.value === undefined) {
-    return t('CRM_PIPELINE.KANBAN.CARD_VALUE_PLACEHOLDER');
-  }
-  return formatCurrency(Number(opp.value), opp.currency || 'BRL');
-};
+const formatOppValue = opp => formatOpportunityValue(opp, t);
 </script>
 
 <template>
@@ -238,7 +223,7 @@ const formatOpportunityValue = opp => {
                 {{ opp.name }}
               </span>
               <span class="text-xs text-n-slate-11">
-                {{ formatOpportunityValue(opp) }}
+                {{ formatOppValue(opp) }}
                 <template v-if="opp.status"> · {{ opp.status }} </template>
               </span>
             </div>
