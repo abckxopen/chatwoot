@@ -40,11 +40,18 @@ export const actions = {
     }
   },
 
-  show: async function showCrmCompany({ commit }, id) {
+  // [2026-05-17] show usa ADD ou EDIT — ver razão em crm/opportunities.js
+  // (MutationHelpers.update no-opa em record ausente; deep-link cold cache
+  // ficava silenciosamente quebrado).
+  show: async function showCrmCompany({ commit, state }, id) {
     commit(types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: true });
     try {
       const response = await CrmCompaniesAPI.show(id);
-      commit(types.default.EDIT_CRM_COMPANY, response.data);
+      const exists = state.records.some(r => r.id === response.data.id);
+      commit(
+        exists ? types.default.EDIT_CRM_COMPANY : types.default.ADD_CRM_COMPANY,
+        response.data
+      );
       return response.data;
     } catch (error) {
       return throwErrorMessage(error);

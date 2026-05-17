@@ -115,10 +115,11 @@ onMounted(async () => {
   if (opportunity.value?.crm_pipeline_id) {
     await store.dispatch('crmStages/get', opportunity.value.crm_pipeline_id);
   }
-  // Fetch companies só se ainda não estiver carregado — evita roundtrip
-  // redundante quando usuário veio do CompanyDetail.
+  // [2026-05-17] Fetch company por id (não lista inteira) — economiza
+  // roundtrip em accounts com muitas empresas. show já faz upsert (ADD/EDIT)
+  // pós-fix no Vuex pra cold cache.
   if (opportunity.value?.crm_company_id && !company.value) {
-    await store.dispatch('crmCompanies/get');
+    await store.dispatch('crmCompanies/show', opportunity.value.crm_company_id);
   }
   await store.dispatch('crmActivities/get', opportunityIdNum.value);
   hasMounted.value = true;
