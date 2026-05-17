@@ -21,6 +21,10 @@ if resource.custom_attributes.present?
 end
 json.domain @account.domain
 json.features @account.enabled_features
+# [2026-05-17] Holding CRM Pipeline feature gate. Não cabe em features.yml
+# upstream (limite 63 bits, ver brain/crm-pipeline-spec.md). Frontend usa
+# este campo + router guard custom pra gatear routes do módulo CRM.
+json.holding_crm_enabled @account.holding_crm_enabled
 json.id @account.id
 json.locale @account.locale
 json.name @account.name

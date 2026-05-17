@@ -4,6 +4,7 @@ import {
   defaultRedirectPage,
   routeIsAccessibleFor,
   validateLoggedInRoutes,
+  validateHoldingCrmRoute,
   isAInboxViewRoute,
 } from '../routeHelpers';
 
@@ -237,5 +238,36 @@ describe('isAInboxViewRoute', () => {
 
   it('returns false if base inbox view route name is provided and includeBase is false', () => {
     expect(isAInboxViewRoute('inbox_view')).toBe(false);
+  });
+});
+
+describe('#validateHoldingCrmRoute', () => {
+  const userWith = enabled => ({
+    accounts: [{ id: 1, holding_crm_enabled: enabled, status: 'active' }],
+  });
+
+  it('returns null when route does not opt-in to holdingCrm', () => {
+    const to = { params: { accountId: 1 }, meta: {} };
+    expect(validateHoldingCrmRoute(to, userWith(true))).toBeNull();
+    expect(validateHoldingCrmRoute(to, userWith(false))).toBeNull();
+  });
+
+  it('returns null when route opts-in and account has holding_crm_enabled', () => {
+    const to = { params: { accountId: 1 }, meta: { holdingCrm: true } };
+    expect(validateHoldingCrmRoute(to, userWith(true))).toBeNull();
+  });
+
+  it('redirects to dashboard when route opts-in but account is not enabled', () => {
+    const to = { params: { accountId: 1 }, meta: { holdingCrm: true } };
+    expect(validateHoldingCrmRoute(to, userWith(false))).toEqual(
+      'accounts/1/dashboard'
+    );
+  });
+
+  it('redirects to dashboard when current account is missing from user', () => {
+    const to = { params: { accountId: 99 }, meta: { holdingCrm: true } };
+    expect(validateHoldingCrmRoute(to, userWith(true))).toEqual(
+      'accounts/99/dashboard'
+    );
   });
 });
