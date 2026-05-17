@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import Spinner from 'shared/components/Spinner.vue';
@@ -29,6 +29,11 @@ const opportunitiesUiFlags = useMapGetter('crmOpportunities/getUIFlags');
 const pipeline = computed(() => getPipelineFn.value(pipelineIdNum.value));
 const stages = computed(() => getStagesFn.value(pipelineIdNum.value));
 
+// [2026-05-17] hasMounted gate evita flash de "Pipeline não encontrado"
+// no primeiro frame em deep-link (uiFlags.fetchingList iniciam false; render
+// inicial vê pipeline=undef + isLoading=false → erro paint por 1 frame).
+const hasMounted = ref(false);
+
 // [2026-05-17] Ordem de dispatch importa pra UX, não pra correção:
 //   1. pipelines/get popula header (caso usuário tenha entrado direto via URL)
 //   2. stages/get popula colunas
@@ -44,6 +49,7 @@ onMounted(async () => {
   await store.dispatch('crmOpportunities/get', {
     pipeline_id: pipelineIdNum.value,
   });
+  hasMounted.value = true;
 });
 
 const isLoading = computed(
@@ -53,10 +59,18 @@ const isLoading = computed(
     opportunitiesUiFlags.value.fetchingList
 );
 
-const pipelineMissing = computed(() => !isLoading.value && !pipeline.value);
+// [2026-05-17] Gated by hasMounted pra não renderizar "não encontrado" antes
+// do primeiro dispatch resolver (initial render tem isLoading=false).
+const pipelineMissing = computed(
+  () => hasMounted.value && !isLoading.value && !pipeline.value
+);
 
 const isPipelineEmpty = computed(
-  () => !isLoading.value && !!pipeline.value && stages.value.length === 0
+  () =>
+    hasMounted.value &&
+    !isLoading.value &&
+    !!pipeline.value &&
+    stages.value.length === 0
 );
 
 const formatCurrency = (value, currency) => {
