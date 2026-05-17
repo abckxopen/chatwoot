@@ -16,7 +16,8 @@
       "PIPELINE_NOT_FOUND": "Pipeline não encontrado.",
       "UNASSIGNED": "—",
       "CARD_VALUE_PLACEHOLDER": "Sem valor",
-      "MOVE_ERROR": "Não foi possível mover a oportunidade. Tente de novo."
+      "MOVE_ERROR": "Não foi possível mover a oportunidade. Tente de novo.",
+      "OPEN_OPPORTUNITY": "Ver"
     },
     "COMPANIES": {
       "PAGE_HEADER": "Empresas",
@@ -61,6 +62,69 @@
         "LOADING": "Carregando empresa..."
       },
       "HOME_LINK": "Ver empresas"
+    },
+    "OPPORTUNITY": {
+      "BACK_TO_HOME": "Voltar para CRM",
+      "STATUS": {
+        "OPEN": "Aberta",
+        "WON": "Ganha",
+        "LOST": "Perdida"
+      },
+      "INFO_SECTION": "Informações",
+      "EDIT_BUTTON": "Editar",
+      "SAVE_BUTTON": "Salvar",
+      "CANCEL_BUTTON": "Cancelar",
+      "MOVE_STAGE": "Mover para stage",
+      "WIN_BUTTON": "Ganhar",
+      "LOSE_BUTTON": "Perder",
+      "DISCARD_BUTTON": "Descartar",
+      "DISCARD_CONFIRM": "Tem certeza que quer descartar essa oportunidade?",
+      "VALUE_LABEL": "Valor",
+      "CURRENCY_LABEL": "Moeda",
+      "CLOSE_DATE_LABEL": "Data prevista de fechamento",
+      "PROBABILITY_LABEL": "Probabilidade (%)",
+      "NAME_LABEL": "Nome",
+      "PIPELINE_LABEL": "Pipeline",
+      "STAGE_LABEL": "Stage",
+      "COMPANY_LABEL": "Empresa",
+      "NO_COMPANY": "Sem empresa",
+      "CONTACT_LABEL": "Contato",
+      "LOADING": "Carregando oportunidade...",
+      "NOT_FOUND": "Oportunidade não encontrada.",
+      "UPDATE_ERROR": "Não foi possível atualizar.",
+      "MOVE_ERROR": "Não foi possível mover.",
+      "DISCARD_ERROR": "Não foi possível descartar."
+    },
+    "ACTIVITIES": {
+      "SECTION_TITLE": "Atividades",
+      "NEW_ACTIVITY_BUTTON": "Nova atividade",
+      "SUBJECT_LABEL": "Assunto",
+      "KIND_LABEL": "Tipo",
+      "KIND_OPTIONS": {
+        "CALL": "Ligação",
+        "EMAIL": "E-mail",
+        "MEETING": "Reunião",
+        "NOTE": "Nota",
+        "TASK": "Tarefa"
+      },
+      "DUE_AT_LABEL": "Data prevista",
+      "DESCRIPTION_LABEL": "Descrição",
+      "CREATE_BUTTON": "Criar",
+      "CANCEL_BUTTON": "Cancelar",
+      "COMPLETE_BUTTON": "Concluir",
+      "DELETE_BUTTON": "Excluir",
+      "DELETE_CONFIRM": "Excluir essa atividade?",
+      "EMPTY_STATE": "Nenhuma atividade. Crie a primeira acima.",
+      "LOADING": "Carregando atividades...",
+      "DUE_RELATIVE": {
+        "OVERDUE": "Vencido há {time}",
+        "DUE_IN": "Em {time}",
+        "DUE_NOW": "Agora",
+        "COMPLETED": "Concluído {time}"
+      },
+      "CREATE_ERROR": "Não foi possível criar.",
+      "COMPLETE_ERROR": "Não foi possível concluir.",
+      "DELETE_ERROR": "Não foi possível excluir."
     }
   }
 }

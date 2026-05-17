@@ -2,6 +2,7 @@ import { frontendURL } from '../../../helper/URLHelper';
 import CompanyDetail from './pages/CompanyDetail.vue';
 import CompanyList from './pages/CompanyList.vue';
 import CrmHome from './pages/CrmHome.vue';
+import OpportunityDetail from './pages/OpportunityDetail.vue';
 import PipelineKanban from './pages/PipelineKanban.vue';
 
 // [2026-05-17] `holdingCrm: true` é o meta-flag do guard custom
@@ -43,6 +44,15 @@ export const routes = [
     meta: commonMeta,
     // [2026-05-17] props:true expõe companyId (route param) como prop
     // do CompanyDetail — mesmo padrão de PipelineKanban acima.
+    props: true,
+  },
+  {
+    path: frontendURL('accounts/:accountId/crm/opportunities/:opportunityId'),
+    name: 'crm_opportunity_detail',
+    component: OpportunityDetail,
+    meta: commonMeta,
+    // [2026-05-17] props:true expõe opportunityId (route param) como prop
+    // do OpportunityDetail — mesmo padrão das rotas acima.
     props: true,
   },
 ];

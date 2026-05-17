@@ -242,15 +242,17 @@ const formatOpportunityValue = opp => {
                 <template v-if="opp.status"> · {{ opp.status }} </template>
               </span>
             </div>
-            <!-- [2026-05-17] Detalhe de opportunity é slice 2 — botão
-                 desabilitado mantém affordance visual sem rota quebrada. -->
-            <button
-              type="button"
-              disabled
-              class="px-2 py-1 text-xs rounded border border-n-strong text-n-slate-11 opacity-50 cursor-not-allowed whitespace-nowrap"
+            <!-- [2026-05-17] Slice 2: rota crm_opportunity_detail existe agora;
+                 substitui botão disabled por router-link clicável. -->
+            <router-link
+              :to="{
+                name: 'crm_opportunity_detail',
+                params: { accountId, opportunityId: opp.id },
+              }"
+              class="px-2 py-1 text-xs rounded border border-n-strong text-n-slate-12 hover:bg-n-alpha-2 no-underline whitespace-nowrap"
             >
               {{ t('CRM_PIPELINE.COMPANIES.DETAIL.OPEN_OPPORTUNITY') }}
-            </button>
+            </router-link>
           </li>
         </ul>
       </section>

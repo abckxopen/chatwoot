@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 import draggable from 'vuedraggable';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
 import { useAlert } from 'dashboard/composables';
+import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
 
 const props = defineProps({
@@ -12,6 +13,9 @@ const props = defineProps({
 
 const { t } = useI18n();
 const store = useStore();
+// [2026-05-17] Slice 2: accountId precisa pra montar router-link pra
+// crm_opportunity_detail nos cards do Kanban.
+const { accountId } = useAccount();
 
 // [2026-05-17] Ler como Number — getters dos módulos CRM normalizam via
 // Number() internamente, mas usar Number aqui evita comparações silenciosas
@@ -268,9 +272,28 @@ const handleChange = async (event, targetStageId) => {
             <article
               class="flex flex-col gap-2 p-3 rounded-md border border-n-strong bg-n-solid-1 hover:bg-n-alpha-2 transition-colors cursor-grab"
             >
-              <h3 class="text-sm font-medium text-n-slate-12 line-clamp-2">
-                {{ opp.name }}
-              </h3>
+              <div class="flex items-start justify-between gap-2">
+                <h3
+                  class="text-sm font-medium text-n-slate-12 line-clamp-2 flex-1"
+                >
+                  {{ opp.name }}
+                </h3>
+                <!-- [2026-05-17] Slice 2: botão "Ver" explícito pra navegar
+                     pro detail. Wrapping o card inteiro num router-link causa
+                     conflito com vuedraggable (click vs drag); botão dedicado
+                     em corner separa as duas affordances. @click.stop evita
+                     que o click dispare drag handler. -->
+                <router-link
+                  :to="{
+                    name: 'crm_opportunity_detail',
+                    params: { accountId, opportunityId: opp.id },
+                  }"
+                  class="text-xs text-n-brand no-underline whitespace-nowrap"
+                  @click.stop
+                >
+                  {{ t('CRM_PIPELINE.KANBAN.OPEN_OPPORTUNITY') }}
+                </router-link>
+              </div>
               <div
                 class="flex justify-between items-center gap-2 text-xs text-n-slate-11"
               >
