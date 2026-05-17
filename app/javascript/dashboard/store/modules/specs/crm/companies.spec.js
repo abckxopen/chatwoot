@@ -133,16 +133,30 @@ describe('CRM Companies Store', () => {
     });
 
     describe('show', () => {
-      it('commits EDIT on success', async () => {
+      it('commits ADD on success when record absent (deep-link cold cache)', async () => {
         CrmCompaniesAPI.show.mockResolvedValue({ data: { id: 1, name: 'A' } });
-        const result = await actions.show({ commit }, 1);
+        const state = { records: [] };
+        const result = await actions.show({ commit, state }, 1);
         expect(CrmCompaniesAPI.show).toHaveBeenCalledWith(1);
         expect(commit.mock.calls).toEqual([
           [types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: true }],
-          [types.default.EDIT_CRM_COMPANY, { id: 1, name: 'A' }],
+          [types.default.ADD_CRM_COMPANY, { id: 1, name: 'A' }],
           [types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: false }],
         ]);
         expect(result).toEqual({ id: 1, name: 'A' });
+      });
+
+      it('commits EDIT on success when record already exists', async () => {
+        CrmCompaniesAPI.show.mockResolvedValue({
+          data: { id: 1, name: 'Updated' },
+        });
+        const state = { records: [{ id: 1, name: 'Old' }] };
+        await actions.show({ commit, state }, 1);
+        expect(commit.mock.calls).toEqual([
+          [types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: true }],
+          [types.default.EDIT_CRM_COMPANY, { id: 1, name: 'Updated' }],
+          [types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: false }],
+        ]);
       });
 
       it('throws on error', async () => {
