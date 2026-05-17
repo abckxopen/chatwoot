@@ -37,6 +37,17 @@ export const defaultRedirectPage = (to, permissions) => {
   return `accounts/${accountId}/${route ? route.path : 'dashboard'}`;
 };
 
+// [2026-05-17] Holding CRM Pipeline route guard. Routes marcam-se opt-in via
+// `meta.holdingCrm: true`. Se a conta atual não tem `holding_crm_enabled`,
+// redireciona pro dashboard ao invés de render. Exportado pra cobertura
+// em spec (specs/routeHelpers.spec.js).
+export const validateHoldingCrmRoute = (to, user) => {
+  if (!to.meta?.holdingCrm) return null;
+  const currentAccount = getCurrentAccount(user, Number(to.params.accountId));
+  if (currentAccount?.holding_crm_enabled) return null;
+  return `accounts/${to.params.accountId}/dashboard`;
+};
+
 const validateActiveAccountRoutes = (to, user) => {
   // If the current account is active, then check for the route permissions
   const accountDashboardURL = `accounts/${to.params.accountId}/dashboard`;
@@ -44,6 +55,15 @@ const validateActiveAccountRoutes = (to, user) => {
   // If the user is trying to access suspended route, redirect them to dashboard
   if (to.name === 'account_suspended') {
     return accountDashboardURL;
+  }
+
+  // [2026-05-17] Holding CRM gate ANTES de permission check: route exige
+  // `meta.holdingCrm` + account.holding_crm_enabled. Gate dedicado (não
+  // reusa `meta.featureFlag` do core porque featureFlag é só sidebar
+  // visibility, não router redirect — ver brain/crm-pipeline-spec.md).
+  const holdingCrmRedirect = validateHoldingCrmRoute(to, user);
+  if (holdingCrmRedirect) {
+    return holdingCrmRedirect;
   }
 
   const userPermissions = getUserPermissions(user, to.params.accountId);

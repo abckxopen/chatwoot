@@ -134,7 +134,9 @@ export const mutations = {
   },
 };
 
+// [2026-05-17] namespaced:true — ver razão completa em crm/pipelines.js.
 export default {
+  namespaced: true,
   state,
   getters,
   actions,

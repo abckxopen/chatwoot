@@ -1,0 +1,9 @@
+{
+  "CRM_PIPELINE": {
+    "PAGE_HEADER": "CRM",
+    "PAGE_SUBHEADER": "Pipelines comerciais",
+    "EMPTY_STATE": "Nenhum pipeline criado ainda. Crie no painel de admin.",
+    "LOADING": "Carregando pipelines...",
+    "RETRY": "Tentar novamente"
+  }
+}
