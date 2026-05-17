@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_05_01_154529) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_17_173731) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -801,7 +801,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_01_154529) do
     t.jsonb "custom_attributes", default: {}, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["account_id", "lost_at"], name: "idx_crm_opportunities_account_lost_at", where: "(status = 2)"
     t.index ["account_id", "status"], name: "idx_crm_opportunities_account_status"
+    t.index ["account_id", "won_at"], name: "idx_crm_opportunities_account_won_at", where: "(status = 1)"
     t.index ["account_id"], name: "idx_crm_opportunities_account_active", where: "(discarded_at IS NULL)"
     t.index ["account_id"], name: "index_crm_opportunities_on_account_id"
     t.index ["assignee_id", "status"], name: "idx_crm_opportunities_assignee_status"

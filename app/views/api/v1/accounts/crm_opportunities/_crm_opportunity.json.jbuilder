@@ -23,7 +23,10 @@ json.custom_attributes opportunity.custom_attributes
 # [2026-05-07] Embeds compactos com `.try` em vez de `&.` direto pra
 # robustez quando a relação não foi eager-loaded (try retorna nil em vez
 # de disparar autoload). Index eager-loads via includes(:stage, :pipeline,
-# :company, :assignee, :contact); show single-record carrega sob demanda.
+# :company); show single-record carrega sob demanda. assignee_id e
+# contact_id ficam scalar — sem embed = sem N+1 (audit Phase 5 2026-05-17).
+# Quando embeddar assignee_name/contact_name (follow-up), adicionar nos
+# includes do controller pra evitar N+1.
 json.stage do
   if (stage = opportunity.try(:stage))
     json.id stage.id
