@@ -43,7 +43,10 @@ describe('CRM Pipelines Store', () => {
 
   describe('Getters', () => {
     const state = {
-      records: [{ id: 1, name: 'Sales' }, { id: 2, name: 'Onboarding' }],
+      records: [
+        { id: 1, name: 'Sales' },
+        { id: 2, name: 'Onboarding' },
+      ],
       uiFlags: { fetchingList: true },
     };
 
@@ -128,7 +131,9 @@ describe('CRM Pipelines Store', () => {
     describe('create', () => {
       it('commits ADD on success', async () => {
         const payload = { name: 'New' };
-        CrmPipelinesAPI.create.mockResolvedValue({ data: { id: 3, ...payload } });
+        CrmPipelinesAPI.create.mockResolvedValue({
+          data: { id: 3, ...payload },
+        });
         const result = await actions.create({ commit }, payload);
         expect(CrmPipelinesAPI.create).toHaveBeenCalledWith(payload);
         expect(commit.mock.calls).toEqual([

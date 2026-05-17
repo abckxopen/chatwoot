@@ -1,5 +1,3 @@
-/* global axios */
-
 import ApiClient from '../ApiClient';
 
 // [2026-05-17] Holding CRM — pipelines API client. Top-level resource

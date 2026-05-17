@@ -5,7 +5,6 @@ describe('#CrmStagesAPI', () => {
   it('creates correct instance with required methods', () => {
     expect(crmStages).toBeInstanceOf(ApiClient);
     expect(crmStages).toHaveProperty('get');
-    expect(crmStages).toHaveProperty('show');
     expect(crmStages).toHaveProperty('create');
     expect(crmStages).toHaveProperty('update');
     expect(crmStages).toHaveProperty('delete');
@@ -36,13 +35,6 @@ describe('#CrmStagesAPI', () => {
       crmStages.get(10);
       expect(axiosMock.get).toHaveBeenCalledWith(
         '/api/v1/accounts/1/crm_pipelines/10/stages'
-      );
-    });
-
-    it('shows a stage', () => {
-      crmStages.show(10, 5);
-      expect(axiosMock.get).toHaveBeenCalledWith(
-        '/api/v1/accounts/1/crm_pipelines/10/stages/5'
       );
     });
 

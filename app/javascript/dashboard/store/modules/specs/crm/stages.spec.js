@@ -212,10 +212,7 @@ describe('CRM Stages Store', () => {
         CrmStagesAPI.reorder.mockResolvedValue({
           data: [{ id: 2 }, { id: 1 }],
         });
-        await actions.reorder(
-          { commit },
-          { pipelineId: 10, stageIds: [2, 1] }
-        );
+        await actions.reorder({ commit }, { pipelineId: 10, stageIds: [2, 1] });
         expect(CrmStagesAPI.reorder).toHaveBeenCalledWith(10, [2, 1]);
         expect(commit.mock.calls).toEqual([
           [types.default.SET_CRM_STAGES_UI_FLAG, { reordering: true }],

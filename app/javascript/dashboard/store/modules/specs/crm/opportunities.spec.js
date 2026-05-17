@@ -115,7 +115,10 @@ describe('CRM Opportunities Store', () => {
 
     it('MOVE_CRM_OPPORTUNITY_TO_STAGE updates crm_stage_id', () => {
       const state = {
-        records: [{ id: 1, crm_stage_id: 100 }, { id: 2, crm_stage_id: 100 }],
+        records: [
+          { id: 1, crm_stage_id: 100 },
+          { id: 2, crm_stage_id: 100 },
+        ],
       };
       mutations[types.default.MOVE_CRM_OPPORTUNITY_TO_STAGE](state, {
         id: 1,
@@ -136,15 +139,14 @@ describe('CRM Opportunities Store', () => {
 
   describe('Actions', () => {
     describe('get', () => {
-      it('passes params and commits SET', async () => {
+      it('passes snake_case params and commits SET', async () => {
         CrmOpportunitiesAPI.get.mockResolvedValue({ data: [{ id: 1 }] });
-        await actions.get({ commit }, { pipelineId: 10 });
-        expect(CrmOpportunitiesAPI.get).toHaveBeenCalledWith({ pipelineId: 10 });
+        await actions.get({ commit }, { pipeline_id: 10 });
+        expect(CrmOpportunitiesAPI.get).toHaveBeenCalledWith({
+          pipeline_id: 10,
+        });
         expect(commit.mock.calls).toEqual([
-          [
-            types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
-            { fetchingList: true },
-          ],
+          [types.default.SET_CRM_OPPORTUNITIES_UI_FLAG, { fetchingList: true }],
           [types.default.SET_CRM_OPPORTUNITIES, [{ id: 1 }]],
           [
             types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
@@ -157,10 +159,7 @@ describe('CRM Opportunities Store', () => {
         CrmOpportunitiesAPI.get.mockRejectedValue(new Error('boom'));
         await actions.get({ commit });
         expect(commit.mock.calls).toEqual([
-          [
-            types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
-            { fetchingList: true },
-          ],
+          [types.default.SET_CRM_OPPORTUNITIES_UI_FLAG, { fetchingList: true }],
           [
             types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
             { fetchingList: false },
@@ -195,10 +194,13 @@ describe('CRM Opportunities Store', () => {
         expect(CrmOpportunitiesAPI.update).toHaveBeenCalledWith(1, {
           status: 'won',
         });
-        expect(commit).toHaveBeenCalledWith(types.default.EDIT_CRM_OPPORTUNITY, {
-          id: 1,
-          status: 'won',
-        });
+        expect(commit).toHaveBeenCalledWith(
+          types.default.EDIT_CRM_OPPORTUNITY,
+          {
+            id: 1,
+            status: 'won',
+          }
+        );
       });
     });
 
@@ -267,15 +269,9 @@ describe('CRM Opportunities Store', () => {
         await actions.discard({ commit }, 1);
         expect(CrmOpportunitiesAPI.discard).toHaveBeenCalledWith(1);
         expect(commit.mock.calls).toEqual([
-          [
-            types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
-            { discarding: true },
-          ],
+          [types.default.SET_CRM_OPPORTUNITIES_UI_FLAG, { discarding: true }],
           [types.default.DISCARD_CRM_OPPORTUNITY, 1],
-          [
-            types.default.SET_CRM_OPPORTUNITIES_UI_FLAG,
-            { discarding: false },
-          ],
+          [types.default.SET_CRM_OPPORTUNITIES_UI_FLAG, { discarding: false }],
         ]);
       });
 

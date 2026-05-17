@@ -33,10 +33,19 @@ describe('#CrmOpportunitiesAPI', () => {
       window.history.pushState({}, '', originalPathname);
     });
 
-    it('lists opportunities', () => {
+    it('lists opportunities with no filters', () => {
       crmOpportunities.get();
       expect(axiosMock.get).toHaveBeenCalledWith(
-        '/api/v1/accounts/1/crm_opportunities'
+        '/api/v1/accounts/1/crm_opportunities',
+        { params: {} }
+      );
+    });
+
+    it('lists opportunities forwarding filter params to axios', () => {
+      crmOpportunities.get({ pipeline_id: 10, stage_id: 200, status: 'open' });
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/accounts/1/crm_opportunities',
+        { params: { pipeline_id: 10, stage_id: 200, status: 'open' } }
       );
     });
 
@@ -86,10 +95,11 @@ describe('#CrmOpportunitiesAPI', () => {
       );
     });
 
-    it('discards by id', () => {
+    it('discards by id with explicit empty body', () => {
       crmOpportunities.discard(7);
       expect(axiosMock.patch).toHaveBeenCalledWith(
-        '/api/v1/accounts/1/crm_opportunities/7/discard'
+        '/api/v1/accounts/1/crm_opportunities/7/discard',
+        {}
       );
     });
   });

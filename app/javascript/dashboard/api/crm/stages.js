@@ -17,17 +17,23 @@ class CrmStages extends ApiClient {
     super('crm_pipelines', { accountScoped: true });
   }
 
+  // [2026-05-17] Guard contra pipelineId nulo — sem isso a URL vira
+  // `.../crm_pipelines/undefined/stages` que 404 cripticamente. Falha cedo
+  // com mensagem clara facilita debug.
   // eslint-disable-next-line class-methods-use-this
   stagesUrl(pipelineId) {
+    if (!pipelineId) {
+      throw new Error('CrmStages API: pipelineId is required');
+    }
     return `${this.url}/${pipelineId}/stages`;
   }
 
+  // [2026-05-17] Backend não expõe show pra stage (config/routes.rb:
+  // resources :crm_stages, only: %i[index create update destroy]).
+  // index retorna todas as stages do pipeline com payload completo —
+  // não precisamos de show separado.
   get(pipelineId) {
     return axios.get(this.stagesUrl(pipelineId));
-  }
-
-  show(pipelineId, id) {
-    return axios.get(`${this.stagesUrl(pipelineId)}/${id}`);
   }
 
   create(pipelineId, data) {
