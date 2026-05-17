@@ -51,6 +51,7 @@ export const actions = {
   // records — MutationHelpers.update no-opa em record ausente (bug pego em
   // reviewer da Phase 4 slice 2). Deep-link cold cache disparava show, EDIT
   // não populava records, e CrmOpportunityDetail mostrava "não encontrado".
+  // eslint-disable-next-line no-shadow
   show: async function showCrmOpportunity({ commit, state }, id) {
     commit(types.default.SET_CRM_OPPORTUNITIES_UI_FLAG, { fetchingItem: true });
     try {

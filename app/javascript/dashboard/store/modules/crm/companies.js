@@ -43,6 +43,7 @@ export const actions = {
   // [2026-05-17] show usa ADD ou EDIT — ver razão em crm/opportunities.js
   // (MutationHelpers.update no-opa em record ausente; deep-link cold cache
   // ficava silenciosamente quebrado).
+  // eslint-disable-next-line no-shadow
   show: async function showCrmCompany({ commit, state }, id) {
     commit(types.default.SET_CRM_COMPANIES_UI_FLAG, { fetchingItem: true });
     try {
