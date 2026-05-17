@@ -27,13 +27,24 @@ onMounted(fetchPipelines);
 
 <template>
   <div class="flex flex-col h-full overflow-hidden p-6 gap-6 bg-n-background">
-    <header class="flex flex-col gap-1">
-      <h1 class="text-xl font-semibold text-n-slate-12">
-        {{ t('CRM_PIPELINE.PAGE_HEADER') }}
-      </h1>
-      <p class="text-sm text-n-slate-11">
-        {{ t('CRM_PIPELINE.PAGE_SUBHEADER') }}
-      </p>
+    <header class="flex items-start justify-between gap-4">
+      <div class="flex flex-col gap-1 min-w-0">
+        <h1 class="text-xl font-semibold text-n-slate-12">
+          {{ t('CRM_PIPELINE.PAGE_HEADER') }}
+        </h1>
+        <p class="text-sm text-n-slate-11">
+          {{ t('CRM_PIPELINE.PAGE_SUBHEADER') }}
+        </p>
+      </div>
+      <!-- [2026-05-17] Link p/ Companies fica no header da landing pra evitar
+           restruturar layout (slice 1 mantém pipelines como conteúdo principal).
+           Slice futura pode promover Companies pra tab/section dedicada. -->
+      <router-link
+        :to="{ name: 'crm_companies', params: { accountId } }"
+        class="no-underline text-n-brand text-sm font-medium whitespace-nowrap"
+      >
+        {{ t('CRM_PIPELINE.COMPANIES.HOME_LINK') }}
+      </router-link>
     </header>
 
     <section

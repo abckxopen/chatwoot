@@ -17,6 +17,50 @@
       "UNASSIGNED": "—",
       "CARD_VALUE_PLACEHOLDER": "Sem valor",
       "MOVE_ERROR": "Não foi possível mover a oportunidade. Tente de novo."
+    },
+    "COMPANIES": {
+      "PAGE_HEADER": "Empresas",
+      "NEW_COMPANY_BUTTON": "Nova empresa",
+      "SEARCH_PLACEHOLDER": "Buscar por nome...",
+      "EMPTY_STATE": "Nenhuma empresa cadastrada ainda.",
+      "EMPTY_SEARCH": "Nenhuma empresa encontrada para essa busca.",
+      "LOADING": "Carregando empresas...",
+      "CREATE_FORM": {
+        "NAME_LABEL": "Nome",
+        "NAME_PLACEHOLDER": "Acme Inc.",
+        "DOMAIN_LABEL": "Domínio",
+        "DOMAIN_PLACEHOLDER": "acme.com",
+        "INDUSTRY_LABEL": "Indústria",
+        "INDUSTRY_PLACEHOLDER": "SaaS",
+        "SUBMIT": "Criar",
+        "CANCEL": "Cancelar",
+        "ERROR": "Não foi possível criar a empresa."
+      },
+      "TABLE": {
+        "NAME": "Nome",
+        "DOMAIN": "Domínio",
+        "INDUSTRY": "Indústria",
+        "CONTACTS_COUNT": "Contatos",
+        "OPPORTUNITIES_COUNT": "Oportunidades"
+      },
+      "DETAIL": {
+        "BACK_TO_LIST": "Voltar para Empresas",
+        "EDIT_BUTTON": "Editar",
+        "INFO_SECTION": "Informações",
+        "CONTACTS_SECTION": "Contatos vinculados",
+        "OPPORTUNITIES_SECTION": "Oportunidades",
+        "NO_CONTACTS": "Nenhum contato vinculado.",
+        "NO_OPPORTUNITIES": "Nenhuma oportunidade nesta empresa.",
+        "COMPANY_NOT_FOUND": "Empresa não encontrada.",
+        "OPEN_OPPORTUNITY": "Abrir oportunidade",
+        "INFO_NAME": "Nome",
+        "INFO_DOMAIN": "Domínio",
+        "INFO_INDUSTRY": "Indústria",
+        "INFO_CREATED_AT": "Criada em",
+        "INFO_UNAVAILABLE": "—",
+        "LOADING": "Carregando empresa..."
+      },
+      "HOME_LINK": "Ver empresas"
     }
   }
 }
