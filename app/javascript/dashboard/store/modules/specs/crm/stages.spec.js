@@ -11,7 +11,6 @@ import * as types from '../../../mutation-types';
 vi.mock('dashboard/api/crm/stages', () => ({
   default: {
     get: vi.fn(),
-    show: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
