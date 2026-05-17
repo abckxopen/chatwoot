@@ -402,6 +402,17 @@ Rails.application.routes.draw do
               member { patch :complete }
             end
           end
+
+          # [2026-05-17] Phase 4 slice 3 — read-only reports.
+          # Resource sem CRUD (only: []) + 3 collection GETs porque endpoints
+          # não correspondem a um model REST — são aggregations parametrizadas.
+          resources :crm_reports, only: [] do
+            collection do
+              get :pipeline_summary
+              get :agent_performance
+              get :forecast
+            end
+          end
           # <<< HOLDING CRM ROUTES >>>
         end
       end
