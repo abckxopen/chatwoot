@@ -92,29 +92,9 @@ class Api::V1::Accounts::CrmReportsController < Api::V1::Accounts::BaseControlle
     return render_pipeline_not_found unless pipeline
 
     until_date = parse_date(params[:until]) || Date.current.end_of_quarter
+    payload = forecast_payload(pipeline, until_date)
 
-    # [2026-05-17] Pull opps abertas com expected_close_date <= until.
-    # IGNORA opps sem expected_close_date — sem data não dá pra projetar
-    # em mês. UI deve sinalizar (ou um endpoint futuro de "ungated opps").
-    open_opps = opportunities_scope
-                .where(crm_pipeline_id: pipeline.id, status: :open)
-                .where.not(expected_close_date: nil)
-                .where('expected_close_date <= ?', until_date)
-                .pluck(:expected_close_date, :value, :probability)
-
-    monthly = open_opps
-              .group_by { |close_date, _, _| close_date.strftime('%Y-%m') }
-              .map { |month, rows| build_forecast_row(month, rows) }
-              .sort_by { |row| row[:month] }
-
-    total = monthly.sum { |row| row[:projected_value].to_f }
-
-    render json: {
-      pipeline_id: pipeline.id,
-      until: until_date.to_s,
-      monthly_projection: monthly,
-      total_projected: format_decimal(total)
-    }
+    render json: { pipeline_id: pipeline.id, until: until_date.to_s, **payload }
   end
 
   private
@@ -160,12 +140,31 @@ class Api::V1::Accounts::CrmReportsController < Api::V1::Accounts::BaseControlle
     }
   end
 
+  # [2026-05-17] Extraído do #forecast pra ficar abaixo do limite AbcSize
+  # do rubocop. Pull + group + map + sum num só lugar isolado.
+  def forecast_payload(pipeline, until_date)
+    # IGNORA opps sem expected_close_date — sem data não dá pra projetar em mês.
+    rows = opportunities_scope
+           .where(crm_pipeline_id: pipeline.id, status: :open)
+           .where.not(expected_close_date: nil)
+           .where('expected_close_date <= ?', until_date)
+           .pluck(:expected_close_date, :value, :probability)
+
+    monthly = rows
+              .group_by { |close_date, _, _| close_date.strftime('%Y-%m') }
+              .map { |month, group| build_forecast_row(month, group) }
+              .sort_by { |row| row[:month] }
+
+    total = monthly.sum { |row| row[:projected_value].to_f }
+    { monthly_projection: monthly, total_projected: format_decimal(total) }
+  end
+
   def build_forecast_row(month, rows)
     projected = rows.sum do |_close_date, value, probability|
       base_value = value || 0
       # probability nil ou 0 — ambos tratados como 50 (default neutro).
       # Ver header do controller pra justificativa.
-      prob = probability && probability.positive? ? probability : 50
+      prob = probability&.positive? ? probability : 50
       base_value * (prob.to_f / 100)
     end
     {

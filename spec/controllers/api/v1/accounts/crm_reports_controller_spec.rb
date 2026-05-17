@@ -59,7 +59,7 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'happy path' do
+    context 'when opportunities exist across stages' do
       before do
         create(:holding_crm_opportunity, pipeline: pipeline, stage: stage_lead, account: account, value: 1_000)
         create(:holding_crm_opportunity, pipeline: pipeline, stage: stage_lead, account: account, value: 2_500)
@@ -72,7 +72,7 @@ RSpec.describe 'CRM Reports API', type: :request do
         create(:holding_crm_opportunity, pipeline: other_pipeline, stage: other_stage, account: other_account, value: 50_000)
       end
 
-      it 'retorna count + total por stage (apenas open)' do
+      it 'retorna count + total por stage (apenas open)', :aggregate_failures do
         get "/api/v1/accounts/#{account.id}/crm_reports/pipeline_summary",
             params: { pipeline_id: pipeline.id },
             headers: admin.create_new_auth_token, as: :json
@@ -100,7 +100,7 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'pipeline com stages mas sem opps' do
+    context 'when pipeline has stages but no opportunities' do
       before do
         stage_lead
         stage_negotiation
@@ -141,8 +141,8 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'sem opps no período' do
-      it 'retorna linhas zeradas pra cada user da conta' do
+    context 'when no opportunities in the period' do
+      it 'retorna linhas zeradas pra cada user da conta', :aggregate_failures do
         admin
         agent
         get "/api/v1/accounts/#{account.id}/crm_reports/agent_performance",
@@ -163,7 +163,7 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'happy path com 2 agentes + tenancy canary' do
+    context 'when 2 agents have data and tenancy isolation must hold' do
       let(:other_user) { create(:user, account: other_account, role: :agent) }
 
       before do
@@ -185,7 +185,7 @@ RSpec.describe 'CRM Reports API', type: :request do
                                                value: 99_999, won_at: 1.day.ago)
       end
 
-      it 'aggrega corretamente por agente (tenancy isolada)' do
+      it 'aggrega corretamente por agente (tenancy isolada)', :aggregate_failures do
         get "/api/v1/accounts/#{account.id}/crm_reports/agent_performance",
             headers: admin.create_new_auth_token, as: :json
         expect(response).to have_http_status(:ok)
@@ -251,7 +251,7 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'happy path com agrupamento mensal' do
+    context 'when opportunities span multiple months' do
       before do
         # Mar 2025: 2 opps × value × probability
         create(:holding_crm_opportunity, account: account, pipeline: pipeline, stage: stage,
@@ -274,7 +274,7 @@ RSpec.describe 'CRM Reports API', type: :request do
                                          expected_close_date: Date.new(2025, 3, 5), value: 99_999, probability: 100)
       end
 
-      it 'agrupa por mês até `until` e soma value × probability' do
+      it 'agrupa por mês até `until` e soma value × probability', :aggregate_failures do
         get "/api/v1/accounts/#{account.id}/crm_reports/forecast",
             params: { pipeline_id: pipeline.id, until: '2025-12-31' },
             headers: admin.create_new_auth_token, as: :json
@@ -310,7 +310,7 @@ RSpec.describe 'CRM Reports API', type: :request do
       end
     end
 
-    context 'sem opps abertas' do
+    context 'when no open opportunities' do
       it 'retorna projeção vazia + total zero' do
         get "/api/v1/accounts/#{account.id}/crm_reports/forecast",
             params: { pipeline_id: pipeline.id },

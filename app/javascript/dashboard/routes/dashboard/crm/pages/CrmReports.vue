@@ -14,7 +14,6 @@ import {
   PointElement,
 } from 'chart.js';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
-import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
 import crmReportsApi from 'dashboard/api/crm/reports';
 import { formatCurrency } from '../helpers/formatters';
@@ -36,7 +35,6 @@ ChartJS.register(
 
 const { t } = useI18n();
 const store = useStore();
-const { accountId } = useAccount();
 
 // [2026-05-17] Vuex pra pipelines (reuso do módulo crmPipelines já registrado);
 // reports propriamente não tem módulo Vuex — refs locais bastam (cada relatório
