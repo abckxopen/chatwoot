@@ -36,15 +36,24 @@ onMounted(fetchPipelines);
           {{ t('CRM_PIPELINE.PAGE_SUBHEADER') }}
         </p>
       </div>
-      <!-- [2026-05-17] Link p/ Companies fica no header da landing pra evitar
-           restruturar layout (slice 1 mantém pipelines como conteúdo principal).
-           Slice futura pode promover Companies pra tab/section dedicada. -->
-      <router-link
-        :to="{ name: 'crm_companies', params: { accountId } }"
-        class="no-underline text-n-brand text-sm font-medium whitespace-nowrap"
-      >
-        {{ t('CRM_PIPELINE.COMPANIES.HOME_LINK') }}
-      </router-link>
+      <!-- [2026-05-17] Links pra Companies + Reports no header da landing.
+           Slice 1 (Companies) + slice 3 (Reports) ambos secundários na
+           landing; pipelines permanece o conteúdo principal. Slice futura
+           pode promover esses links pra tabs/section dedicada. -->
+      <div class="flex items-center gap-4">
+        <router-link
+          :to="{ name: 'crm_companies', params: { accountId } }"
+          class="no-underline text-n-brand text-sm font-medium whitespace-nowrap"
+        >
+          {{ t('CRM_PIPELINE.COMPANIES.HOME_LINK') }}
+        </router-link>
+        <router-link
+          :to="{ name: 'crm_reports', params: { accountId } }"
+          class="no-underline text-n-brand text-sm font-medium whitespace-nowrap"
+        >
+          {{ t('CRM_PIPELINE.REPORTS.HOME_LINK') }}
+        </router-link>
+      </div>
     </header>
 
     <section

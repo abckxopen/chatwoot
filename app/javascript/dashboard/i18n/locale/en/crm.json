@@ -128,6 +128,42 @@
       "CREATE_ERROR": "Não foi possível criar.",
       "COMPLETE_ERROR": "Não foi possível concluir.",
       "DELETE_ERROR": "Não foi possível excluir."
+    },
+    "REPORTS": {
+      "PAGE_HEADER": "Relatórios CRM",
+      "BACK_TO_HOME": "Voltar para CRM",
+      "SELECT_PIPELINE": "Selecione um pipeline",
+      "REFRESH_BUTTON": "Atualizar",
+      "FROM_LABEL": "De",
+      "TO_LABEL": "Até",
+      "UNTIL_LABEL": "Até",
+      "PIPELINE_SUMMARY": {
+        "TITLE": "Resumo do pipeline",
+        "EMPTY": "Sem dados para esse pipeline.",
+        "ERROR": "Falha ao carregar resumo.",
+        "OPPORTUNITIES_AXIS": "Oportunidades",
+        "VALUE_AXIS": "Valor total"
+      },
+      "AGENT_PERFORMANCE": {
+        "TITLE": "Performance por agente",
+        "EMPTY": "Sem dados nesse período.",
+        "ERROR": "Falha ao carregar performance.",
+        "AGENT_COLUMN": "Agente",
+        "ASSIGNED_COLUMN": "Atribuídas",
+        "WON_COLUMN": "Ganhas",
+        "WON_VALUE_COLUMN": "Valor ganho",
+        "LOST_COLUMN": "Perdidas",
+        "WIN_RATE_COLUMN": "Taxa de vitória"
+      },
+      "FORECAST": {
+        "TITLE": "Forecast",
+        "EMPTY": "Sem oportunidades projetadas até essa data.",
+        "ERROR": "Falha ao carregar forecast.",
+        "MONTHLY_AXIS": "Mês",
+        "PROJECTED_AXIS": "Projeção (valor x probabilidade)",
+        "TOTAL_LABEL": "Total projetado"
+      },
+      "HOME_LINK": "Ver relatórios"
     }
   }
 }

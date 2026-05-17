@@ -2,6 +2,7 @@ import { frontendURL } from '../../../helper/URLHelper';
 import CompanyDetail from './pages/CompanyDetail.vue';
 import CompanyList from './pages/CompanyList.vue';
 import CrmHome from './pages/CrmHome.vue';
+import CrmReports from './pages/CrmReports.vue';
 import OpportunityDetail from './pages/OpportunityDetail.vue';
 import PipelineKanban from './pages/PipelineKanban.vue';
 
@@ -54,5 +55,14 @@ export const routes = [
     // [2026-05-17] props:true expõe opportunityId (route param) como prop
     // do OpportunityDetail — mesmo padrão das rotas acima.
     props: true,
+  },
+  {
+    // [2026-05-17] Phase 4 slice 3 — relatórios CRM. Sem id na URL: página
+    // tem seletor próprio de pipeline + range de datas. Aggregations
+    // read-only, mesmo gate (holdingCrm + admin/agent) das outras rotas.
+    path: frontendURL('accounts/:accountId/crm/reports'),
+    name: 'crm_reports',
+    component: CrmReports,
+    meta: commonMeta,
   },
 ];
