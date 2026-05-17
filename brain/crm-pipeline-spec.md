@@ -1,5 +1,13 @@
 # Spec — CRM Pipeline pro fork abckxopen/chatwoot
 
+> **[2026-05-17 — Phase 5 closeout]** Spec é histórico. Implementação real
+> está em [`crm-implementation-notes.md`](./crm-implementation-notes.md).
+> Phase 5 (hardening + brain docs + runbook) entregue em PR de fechamento
+> da CRM Pipeline initiative — referência: tag v0.4.9.
+> Para deploy: [`crm-deploy-runbook.md`](./crm-deploy-runbook.md).
+> Para onboarding: [`crm-jr-onboarding.md`](./crm-jr-onboarding.md).
+> Para security review: [`crm-security-review-preliminar.md`](./crm-security-review-preliminar.md).
+
 > Documento canônico que guia a implementação. Companion de `crm-research.md` (precedentes de mercado) e `crm-codebase-patterns.md` (padrões internos). Esta spec é a síntese — quando bater dúvida durante a implementação, este arquivo é a fonte.
 >
 > Status: **DRAFT — aguardando approval do Founder em escolha de caminho macro.**
