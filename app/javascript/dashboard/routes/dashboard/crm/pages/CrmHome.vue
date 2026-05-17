@@ -14,9 +14,7 @@ const pipelines = useMapGetter('crmPipelines/getCrmPipelines');
 const uiFlags = useMapGetter('crmPipelines/getUIFlags');
 
 const isLoading = computed(() => uiFlags.value.fetchingList);
-const isEmpty = computed(
-  () => !isLoading.value && pipelines.value.length === 0
-);
+const isEmpty = computed(() => pipelines.value.length === 0);
 
 const fetchPipelines = () => store.dispatch('crmPipelines/get');
 
@@ -83,16 +81,6 @@ onMounted(fetchPipelines);
             {{ pipeline.description }}
           </p>
         </header>
-        <!-- [2026-05-17] TODO Phase 3 slice 3 wires this — `crm_pipeline_kanban`
-             route ainda não existe. Mantemos o CTA por consistência visual
-             mas o handler é no-op até a próxima slice. -->
-        <button
-          type="button"
-          disabled
-          class="self-start px-3 py-1.5 text-sm rounded-md bg-n-alpha-2 text-n-slate-11 cursor-not-allowed"
-        >
-          {{ t('CRM_PIPELINE.OPEN_KANBAN') }}
-        </button>
       </article>
     </section>
   </div>

@@ -13,6 +13,10 @@ import components from './components.json';
 import contact from './contact.json';
 import contactFilters from './contactFilters.json';
 import conversation from './conversation.json';
+// [2026-05-17] Strings de crm.json intencionalmente em PT-BR — produto da
+// holding é PT-BR-first; chatwoot CLAUDE.md diz "só atualizar en.json", sem
+// locale PT separado. Comunidade trata fallback se vier outro idioma. Não
+// "corrigir" pra inglês sem confirmar com Founder.
 import crm from './crm.json';
 import csatMgmt from './csatMgmt.json';
 import customRole from './customRole.json';
