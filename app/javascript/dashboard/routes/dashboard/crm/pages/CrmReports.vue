@@ -14,8 +14,8 @@ import {
   PointElement,
 } from 'chart.js';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
-import Spinner from 'shared/components/Spinner.vue';
 import crmReportsApi from 'dashboard/api/crm/reports';
+import ReportSection from '../components/ReportSection.vue';
 import { formatCurrency } from '../helpers/formatters';
 
 // [2026-05-17] Chart.js registration top-level: chart components dependem
@@ -308,13 +308,15 @@ const totalProjectedFormatted = computed(() =>
 
     <div class="flex flex-col gap-4 overflow-y-auto p-6">
       <!-- Pipeline Summary -->
-      <section
-        class="flex flex-col gap-3 p-4 rounded-lg border border-n-strong bg-n-solid-1"
+      <ReportSection
+        :title="t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.TITLE')"
+        :is-loading="pipelineSummaryLoading"
+        :has-error="pipelineSummaryError"
+        :is-empty="isPipelineSummaryEmpty"
+        :error-message="t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.ERROR')"
+        :empty-message="t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.EMPTY')"
       >
-        <header class="flex items-center justify-between gap-2">
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.TITLE') }}
-          </h2>
+        <template #actions>
           <button
             type="button"
             :disabled="pipelineSummaryLoading || !selectedPipelineId"
@@ -323,98 +325,60 @@ const totalProjectedFormatted = computed(() =>
           >
             {{ t('CRM_PIPELINE.REPORTS.REFRESH_BUTTON') }}
           </button>
-        </header>
-
-        <div
-          v-if="pipelineSummaryLoading"
-          class="flex items-center justify-center py-8"
-        >
-          <Spinner />
-        </div>
-        <p
-          v-else-if="pipelineSummaryError"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.ERROR') }}
-        </p>
-        <p
-          v-else-if="isPipelineSummaryEmpty"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.PIPELINE_SUMMARY.EMPTY') }}
-        </p>
-        <div v-else class="h-72">
+        </template>
+        <div class="h-72">
           <Bar
             :data="pipelineSummaryChart"
             :options="pipelineSummaryChartOptions"
           />
         </div>
-      </section>
+      </ReportSection>
 
       <!-- Agent Performance -->
-      <section
-        class="flex flex-col gap-3 p-4 rounded-lg border border-n-strong bg-n-solid-1"
+      <ReportSection
+        :title="t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.TITLE')"
+        :is-loading="agentPerformanceLoading"
+        :has-error="agentPerformanceError"
+        :is-empty="isAgentPerformanceEmpty"
+        :error-message="t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.ERROR')"
+        :empty-message="t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.EMPTY')"
       >
-        <header class="flex flex-wrap items-end justify-between gap-3">
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.TITLE') }}
-          </h2>
-          <div class="flex flex-wrap items-end gap-2">
-            <div class="flex flex-col gap-1">
-              <label
-                for="crm-reports-agent-from"
-                class="text-xs text-n-slate-11"
-              >
-                {{ t('CRM_PIPELINE.REPORTS.FROM_LABEL') }}
-              </label>
-              <input
-                id="crm-reports-agent-from"
-                v-model="fromDate"
-                type="date"
-                class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <label for="crm-reports-agent-to" class="text-xs text-n-slate-11">
-                {{ t('CRM_PIPELINE.REPORTS.TO_LABEL') }}
-              </label>
-              <input
-                id="crm-reports-agent-to"
-                v-model="toDate"
-                type="date"
-                class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-              />
-            </div>
-            <button
-              type="button"
-              :disabled="agentPerformanceLoading"
-              class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
-              @click="fetchAgentPerformance"
+        <template #actions>
+          <div class="flex flex-col gap-1">
+            <label
+              for="crm-reports-agent-from"
+              class="text-xs text-n-slate-11"
             >
-              {{ t('CRM_PIPELINE.REPORTS.REFRESH_BUTTON') }}
-            </button>
+              {{ t('CRM_PIPELINE.REPORTS.FROM_LABEL') }}
+            </label>
+            <input
+              id="crm-reports-agent-from"
+              v-model="fromDate"
+              type="date"
+              class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
+            />
           </div>
-        </header>
-
-        <div
-          v-if="agentPerformanceLoading"
-          class="flex items-center justify-center py-8"
-        >
-          <Spinner />
-        </div>
-        <p
-          v-else-if="agentPerformanceError"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.ERROR') }}
-        </p>
-        <p
-          v-else-if="isAgentPerformanceEmpty"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.AGENT_PERFORMANCE.EMPTY') }}
-        </p>
-        <div v-else class="overflow-x-auto">
+          <div class="flex flex-col gap-1">
+            <label for="crm-reports-agent-to" class="text-xs text-n-slate-11">
+              {{ t('CRM_PIPELINE.REPORTS.TO_LABEL') }}
+            </label>
+            <input
+              id="crm-reports-agent-to"
+              v-model="toDate"
+              type="date"
+              class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
+            />
+          </div>
+          <button
+            type="button"
+            :disabled="agentPerformanceLoading"
+            class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
+            @click="fetchAgentPerformance"
+          >
+            {{ t('CRM_PIPELINE.REPORTS.REFRESH_BUTTON') }}
+          </button>
+        </template>
+        <div class="overflow-x-auto">
           <table class="w-full text-sm text-left">
             <thead class="text-xs text-n-slate-11 uppercase">
               <tr>
@@ -470,61 +434,42 @@ const totalProjectedFormatted = computed(() =>
             </tbody>
           </table>
         </div>
-      </section>
+      </ReportSection>
 
       <!-- Forecast -->
-      <section
-        class="flex flex-col gap-3 p-4 rounded-lg border border-n-strong bg-n-solid-1"
+      <ReportSection
+        :title="t('CRM_PIPELINE.REPORTS.FORECAST.TITLE')"
+        :is-loading="forecastLoading"
+        :has-error="forecastError"
+        :is-empty="isForecastEmpty"
+        :error-message="t('CRM_PIPELINE.REPORTS.FORECAST.ERROR')"
+        :empty-message="t('CRM_PIPELINE.REPORTS.FORECAST.EMPTY')"
       >
-        <header class="flex flex-wrap items-end justify-between gap-3">
-          <h2 class="text-base font-semibold text-n-slate-12">
-            {{ t('CRM_PIPELINE.REPORTS.FORECAST.TITLE') }}
-          </h2>
-          <div class="flex flex-wrap items-end gap-2">
-            <div class="flex flex-col gap-1">
-              <label
-                for="crm-reports-forecast-until"
-                class="text-xs text-n-slate-11"
-              >
-                {{ t('CRM_PIPELINE.REPORTS.UNTIL_LABEL') }}
-              </label>
-              <input
-                id="crm-reports-forecast-until"
-                v-model="untilDate"
-                type="date"
-                class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
-              />
-            </div>
-            <button
-              type="button"
-              :disabled="forecastLoading || !selectedPipelineId"
-              class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
-              @click="fetchForecast"
+        <template #actions>
+          <div class="flex flex-col gap-1">
+            <label
+              for="crm-reports-forecast-until"
+              class="text-xs text-n-slate-11"
             >
-              {{ t('CRM_PIPELINE.REPORTS.REFRESH_BUTTON') }}
-            </button>
+              {{ t('CRM_PIPELINE.REPORTS.UNTIL_LABEL') }}
+            </label>
+            <input
+              id="crm-reports-forecast-until"
+              v-model="untilDate"
+              type="date"
+              class="px-2 py-1 text-sm rounded border border-n-strong bg-n-solid-2 text-n-slate-12"
+            />
           </div>
-        </header>
-
-        <div
-          v-if="forecastLoading"
-          class="flex items-center justify-center py-8"
-        >
-          <Spinner />
-        </div>
-        <p
-          v-else-if="forecastError"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.FORECAST.ERROR') }}
-        </p>
-        <p
-          v-else-if="isForecastEmpty"
-          class="text-sm text-n-slate-11 italic py-6 text-center"
-        >
-          {{ t('CRM_PIPELINE.REPORTS.FORECAST.EMPTY') }}
-        </p>
-        <div v-else class="flex flex-col gap-2">
+          <button
+            type="button"
+            :disabled="forecastLoading || !selectedPipelineId"
+            class="px-3 py-1.5 text-xs rounded-md border border-n-strong text-n-slate-12 hover:bg-n-alpha-2 disabled:opacity-50"
+            @click="fetchForecast"
+          >
+            {{ t('CRM_PIPELINE.REPORTS.REFRESH_BUTTON') }}
+          </button>
+        </template>
+        <div class="flex flex-col gap-2">
           <div class="h-72">
             <Line :data="forecastChart" :options="forecastChartOptions" />
           </div>
@@ -533,7 +478,7 @@ const totalProjectedFormatted = computed(() =>
             <span class="font-semibold">{{ totalProjectedFormatted }}</span>
           </p>
         </div>
-      </section>
+      </ReportSection>
     </div>
   </div>
 </template>

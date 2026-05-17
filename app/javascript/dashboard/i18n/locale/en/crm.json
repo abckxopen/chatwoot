@@ -159,7 +159,6 @@
         "TITLE": "Forecast",
         "EMPTY": "Sem oportunidades projetadas até essa data.",
         "ERROR": "Falha ao carregar forecast.",
-        "MONTHLY_AXIS": "Mês",
         "PROJECTED_AXIS": "Projeção (valor x probabilidade)",
         "TOTAL_LABEL": "Total projetado"
       },
