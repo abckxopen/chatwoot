@@ -2,10 +2,14 @@
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAccount } from 'dashboard/composables/useAccount';
 import Spinner from 'shared/components/Spinner.vue';
 
 const { t } = useI18n();
 const store = useStore();
+// [2026-05-17] accountId vem de useAccount() (lê route.params.accountId);
+// slice 3 precisa dele pra montar router-link pra crm_pipeline_kanban.
+const { accountId } = useAccount();
 
 // [2026-05-17] Module registrado em store/index.js como `crmPipelines`.
 // Action upstream-style é simplesmente `get` (não `getCrmPipelines`).
@@ -81,6 +85,18 @@ onMounted(fetchPipelines);
             {{ pipeline.description }}
           </p>
         </header>
+        <footer class="flex justify-end">
+          <router-link
+            :to="{
+              name: 'crm_pipeline_kanban',
+              params: { accountId, pipelineId: pipeline.id },
+            }"
+            class="no-underline text-n-brand text-sm font-medium"
+          >
+            <span>{{ t('CRM_PIPELINE.OPEN_KANBAN') }}</span>
+            <span class="ml-2">→</span>
+          </router-link>
+        </footer>
       </article>
     </section>
   </div>
