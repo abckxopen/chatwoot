@@ -15,7 +15,8 @@
       "LOADING": "Carregando kanban...",
       "PIPELINE_NOT_FOUND": "Pipeline não encontrado.",
       "UNASSIGNED": "—",
-      "CARD_VALUE_PLACEHOLDER": "Sem valor"
+      "CARD_VALUE_PLACEHOLDER": "Sem valor",
+      "MOVE_ERROR": "Não foi possível mover a oportunidade. Tente de novo."
     }
   }
 }
