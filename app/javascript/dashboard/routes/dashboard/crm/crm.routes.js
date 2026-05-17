@@ -1,4 +1,6 @@
 import { frontendURL } from '../../../helper/URLHelper';
+import CompanyDetail from './pages/CompanyDetail.vue';
+import CompanyList from './pages/CompanyList.vue';
 import CrmHome from './pages/CrmHome.vue';
 import PipelineKanban from './pages/PipelineKanban.vue';
 
@@ -26,6 +28,21 @@ export const routes = [
     // [2026-05-17] props:true expõe pipelineId (route param) como prop
     // do PipelineKanban — evita acoplar componente ao useRoute() pra
     // ler params (accountId continua via useAccount()).
+    props: true,
+  },
+  {
+    path: frontendURL('accounts/:accountId/crm/companies'),
+    name: 'crm_companies',
+    component: CompanyList,
+    meta: commonMeta,
+  },
+  {
+    path: frontendURL('accounts/:accountId/crm/companies/:companyId'),
+    name: 'crm_company_detail',
+    component: CompanyDetail,
+    meta: commonMeta,
+    // [2026-05-17] props:true expõe companyId (route param) como prop
+    // do CompanyDetail — mesmo padrão de PipelineKanban acima.
     props: true,
   },
 ];
