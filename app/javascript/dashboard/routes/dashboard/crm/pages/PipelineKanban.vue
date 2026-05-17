@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import draggable from 'vuedraggable';
 import { useStore, useMapGetter } from 'dashboard/composables/store';
+import { useAlert } from 'dashboard/composables';
 import Spinner from 'shared/components/Spinner.vue';
 
 const props = defineProps({
@@ -107,6 +109,51 @@ const assigneeInitials = opp => {
   if (!opp.assignee_id) return t('CRM_PIPELINE.KANBAN.UNASSIGNED');
   return `U${opp.assignee_id}`;
 };
+
+// [2026-05-17] @change vs @end: @end dispara na coluna ORIGEM e não recebe a
+// stage de destino. @change dispara na coluna DESTINO com payload
+// { added: { element, newIndex } } — único caminho limpo de saber pra onde
+// o card foi sem hackear data-attrs ou ler DOM. Eventos `removed` (na origem)
+// e `moved` (reorder dentro da mesma coluna) são ignorados nesta slice;
+// reorder-within-column entra numa próxima fase.
+const handleChange = async (event, targetStageId) => {
+  if (!event.added) return;
+  const opp = event.added.element;
+  const originalStageId = opp.crm_stage_id;
+  // Mesma stage (no-op): vuedraggable pode disparar added em casos extremos
+  // onde origem == destino (drop no mesmo lugar). Guard barato.
+  if (originalStageId === targetStageId) return;
+
+  // [2026-05-17] Optimistic commit ANTES do dispatch: a action commita apenas
+  // no caminho de sucesso (ver store/modules/crm/opportunities.js). Sem o
+  // commit prévio aqui, o card "voltaria" pra origem durante o roundtrip da
+  // API e só pularia pra coluna nova quando a Promise resolvesse — UX ruim.
+  // Em caso de erro, fazemos rollback explícito no catch abaixo.
+  // O nome `crmOpportunities/MOVE_CRM_OPPORTUNITY_TO_STAGE` usa a forma
+  // namespaced `<module>/<MUTATION_TYPE>`; equivale a importar
+  // `types.default.MOVE_CRM_OPPORTUNITY_TO_STAGE` e prefixar com o módulo,
+  // mas evita acoplar o componente ao arquivo de mutation-types.
+  store.commit('crmOpportunities/MOVE_CRM_OPPORTUNITY_TO_STAGE', {
+    ...opp,
+    crm_stage_id: targetStageId,
+  });
+
+  try {
+    await store.dispatch('crmOpportunities/moveToStage', {
+      id: opp.id,
+      stageId: targetStageId,
+    });
+  } catch (error) {
+    // Rollback: action throwou (4xx/5xx ou rede). Devolvemos pra stage origem
+    // e avisamos o usuário; sem o rollback o store ficaria divergente do
+    // backend até o próximo refetch.
+    store.commit('crmOpportunities/MOVE_CRM_OPPORTUNITY_TO_STAGE', {
+      ...opp,
+      crm_stage_id: originalStageId,
+    });
+    useAlert(t('CRM_PIPELINE.KANBAN.MOVE_ERROR'));
+  }
+};
 </script>
 
 <template>
@@ -194,36 +241,51 @@ const assigneeInitials = opp => {
           </div>
         </header>
 
-        <div class="flex flex-col gap-2 p-3 overflow-y-auto">
-          <p
-            v-if="stageOpportunities(stage.id).length === 0"
-            class="text-xs text-n-slate-11 italic text-center py-4"
-          >
-            {{ t('CRM_PIPELINE.KANBAN.EMPTY_STAGE') }}
-          </p>
+        <p
+          v-if="stageOpportunities(stage.id).length === 0"
+          class="text-xs text-n-slate-11 italic text-center py-4 px-3"
+        >
+          {{ t('CRM_PIPELINE.KANBAN.EMPTY_STAGE') }}
+        </p>
 
-          <article
-            v-for="opp in stageOpportunities(stage.id)"
-            :key="opp.id"
-            class="flex flex-col gap-2 p-3 rounded-md border border-n-strong bg-n-solid-1 hover:bg-n-alpha-2 transition-colors"
-          >
-            <h3 class="text-sm font-medium text-n-slate-12 line-clamp-2">
-              {{ opp.name }}
-            </h3>
-            <div
-              class="flex justify-between items-center gap-2 text-xs text-n-slate-11"
+        <!--
+          [2026-05-17] :group precisa ser pipeline-scoped pra impedir drag
+          cross-pipeline (cenário raro hoje — só um pipeline visível por vez —
+          mas barato de prevenir e protege contra regressão se um dia
+          renderizarmos múltiplos pipelines lado a lado).
+          min-h-[60px] garante área de drop em colunas vazias (vuedraggable
+          renderiza um container vazio mas com altura zero seria intargetável).
+        -->
+        <draggable
+          :list="stageOpportunities(stage.id)"
+          :group="`pipeline-${pipelineIdNum}`"
+          item-key="id"
+          :animation="200"
+          class="flex flex-col gap-2 p-3 overflow-y-auto min-h-[60px]"
+          @change="handleChange($event, stage.id)"
+        >
+          <template #item="{ element: opp }">
+            <article
+              class="flex flex-col gap-2 p-3 rounded-md border border-n-strong bg-n-solid-1 hover:bg-n-alpha-2 transition-colors cursor-grab"
             >
-              <span class="font-medium text-n-slate-12">
-                {{ formatOpportunityValue(opp) }}
-              </span>
-              <span
-                class="px-2 py-0.5 rounded-full bg-n-alpha-2 text-n-slate-11"
+              <h3 class="text-sm font-medium text-n-slate-12 line-clamp-2">
+                {{ opp.name }}
+              </h3>
+              <div
+                class="flex justify-between items-center gap-2 text-xs text-n-slate-11"
               >
-                {{ assigneeInitials(opp) }}
-              </span>
-            </div>
-          </article>
-        </div>
+                <span class="font-medium text-n-slate-12">
+                  {{ formatOpportunityValue(opp) }}
+                </span>
+                <span
+                  class="px-2 py-0.5 rounded-full bg-n-alpha-2 text-n-slate-11"
+                >
+                  {{ assigneeInitials(opp) }}
+                </span>
+              </div>
+            </article>
+          </template>
+        </draggable>
       </article>
     </section>
   </div>
