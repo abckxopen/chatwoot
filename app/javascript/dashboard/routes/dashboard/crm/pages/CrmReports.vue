@@ -345,10 +345,7 @@ const totalProjectedFormatted = computed(() =>
       >
         <template #actions>
           <div class="flex flex-col gap-1">
-            <label
-              for="crm-reports-agent-from"
-              class="text-xs text-n-slate-11"
-            >
+            <label for="crm-reports-agent-from" class="text-xs text-n-slate-11">
               {{ t('CRM_PIPELINE.REPORTS.FROM_LABEL') }}
             </label>
             <input
