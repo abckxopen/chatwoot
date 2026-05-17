@@ -101,10 +101,13 @@ const submitForm = async () => {
     </header>
 
     <!-- [2026-05-17] Form inline acima da tabela: aparece apenas quando
-         openForm() chamado. Tab order preservada com inputs em sequência. -->
-    <section
+         openForm() chamado. Tab order preservada com inputs em sequência.
+         Wrapped em <form> + @submit.prevent pra capturar Enter (UX padrão
+         de formulário) sem precisar mover foco até o botão Criar. -->
+    <form
       v-if="isFormOpen"
       class="flex flex-col gap-3 p-4 rounded-lg border border-n-strong bg-n-solid-1"
+      @submit.prevent="submitForm"
     >
       <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         <label class="flex flex-col gap-1 text-sm text-n-slate-12">
@@ -150,15 +153,14 @@ const submitForm = async () => {
           {{ t('CRM_PIPELINE.COMPANIES.CREATE_FORM.CANCEL') }}
         </button>
         <button
-          type="button"
+          type="submit"
           :disabled="!formState.name.trim() || isCreating"
           class="px-3 py-1.5 text-sm rounded-md border border-n-strong bg-n-brand text-white hover:bg-n-brand/90 disabled:opacity-50"
-          @click="submitForm"
         >
           {{ t('CRM_PIPELINE.COMPANIES.CREATE_FORM.SUBMIT') }}
         </button>
       </div>
-    </section>
+    </form>
 
     <div class="flex flex-col gap-2">
       <input
