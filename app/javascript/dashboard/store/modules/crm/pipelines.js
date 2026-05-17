@@ -107,7 +107,12 @@ export const mutations = {
   [types.default.DELETE_CRM_PIPELINE]: MutationHelpers.destroy,
 };
 
+// [2026-05-17] namespaced:true é obrigatório — sem isso useMapGetter('crmPipelines/x')
+// e store.dispatch('crmPipelines/x') resolvem como keys flat e silenciosamente no-op
+// no consumer Vue (descoberto na review do slice 2 da Phase 3, onde o landing crasha).
+// Adicionado retroativamente nos 5 módulos CRM (pipelines/stages/opportunities/companies/activities).
 export default {
+  namespaced: true,
   state,
   getters,
   actions,

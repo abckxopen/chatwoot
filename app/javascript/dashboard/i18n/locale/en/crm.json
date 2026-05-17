@@ -1,4 +1,5 @@
 {
+  "_anchor": "[2026-05-17] Strings em PT-BR no en/crm.json intencionalmente — produto da holding é PT-BR-first; chatwoot CLAUDE.md diz 'só atualizar en.json', sem locale PT separado. Comunidade trata fallback se vier outro idioma. Não 'corrigir' pra inglês sem confirmar com Founder.",
   "CRM_PIPELINE": {
     "PAGE_HEADER": "CRM",
     "PAGE_SUBHEADER": "Pipelines comerciais",

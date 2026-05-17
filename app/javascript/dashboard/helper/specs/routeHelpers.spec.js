@@ -270,4 +270,11 @@ describe('#validateHoldingCrmRoute', () => {
       'accounts/99/dashboard'
     );
   });
+
+  it('redirects to dashboard when user has no accounts at all', () => {
+    const to = { params: { accountId: 1 }, meta: { holdingCrm: true } };
+    expect(validateHoldingCrmRoute(to, { accounts: [] })).toEqual(
+      'accounts/1/dashboard'
+    );
+  });
 });

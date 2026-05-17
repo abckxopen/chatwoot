@@ -107,7 +107,9 @@ export const mutations = {
   [types.default.DELETE_CRM_COMPANY]: MutationHelpers.destroy,
 };
 
+// [2026-05-17] namespaced:true — ver razão completa em crm/pipelines.js.
 export default {
+  namespaced: true,
   state,
   getters,
   actions,
