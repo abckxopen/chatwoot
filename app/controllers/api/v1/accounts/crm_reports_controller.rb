@@ -75,15 +75,11 @@ class Api::V1::Accounts::CrmReportsController < Api::V1::Accounts::BaseControlle
     # (linha com zeros). Filtrar quem não tem opp no período economizaria
     # rows mas perderia "agente sem performance no período" — esse é o
     # próprio sinal que o relatório serve pra mostrar.
-    agents = Current.account.users.order(:id).map do |user|
-      build_agent_row(user, range)
-    end
+    users = Current.account.users.order(:id)
+    aggregates = agent_aggregates(range)
+    agents = users.map { |user| build_agent_row(user, aggregates) }
 
-    render json: {
-      from: from.to_s,
-      to: to.to_s,
-      agents: agents
-    }
+    render json: { from: from.to_s, to: to.to_s, agents: agents }
   end
 
   # GET /api/v1/accounts/:account_id/crm_reports/forecast?pipeline_id=N&until=YYYY-MM-DD
@@ -111,32 +107,35 @@ class Api::V1::Accounts::CrmReportsController < Api::V1::Accounts::BaseControlle
     render json: { error: 'pipeline_not_found' }, status: :not_found
   end
 
-  def build_agent_row(user, range)
-    user_opps = opportunities_scope.where(assignee_id: user.id)
-    assigned = user_opps.where(created_at: range).count
-
-    won_opps = user_opps.where(status: :won, won_at: range)
-    won_count = won_opps.count
-    won_value = won_opps.sum(:value)
-
-    # [2026-05-17] lost usa `lost_at` (auto-set no callback do model em
-    # status → lost), não `updated_at`. updated_at varia com qualquer edit
-    # subsequente (mudar lost_reason após perder), inflando o range
-    # arbitrariamente. lost_at é fixado uma vez quando a opp vira lost,
-    # alinhando com won_at e dando paridade semântica.
-    lost_count = user_opps.where(status: :lost, lost_at: range).count
-
+  def build_agent_row(user, aggregates)
+    won_count = aggregates[:won_count_by_user][user.id] || 0
+    lost_count = aggregates[:lost_count_by_user][user.id] || 0
     decided = won_count + lost_count
     win_rate = decided.zero? ? 0.0 : (won_count.to_f / decided).round(3)
 
     {
       user_id: user.id,
       user_name: user.name,
-      opportunities_assigned: assigned,
+      opportunities_assigned: aggregates[:assigned_by_user][user.id] || 0,
       opportunities_won: won_count,
-      won_value: format_decimal(won_value),
+      won_value: format_decimal(aggregates[:won_value_by_user][user.id] || 0),
       opportunities_lost: lost_count,
       win_rate: win_rate
+    }
+  end
+
+  # [2026-05-17] 4 queries TOTAIS em vez de 4 por user. group(:assignee_id)
+  # em vez de per-user where + count. Pra account com 50 users isso era
+  # 200 queries antes do refactor (review subagent pegou — anchor anterior
+  # afirmava N+1 evitado, era falso só pra pipeline_summary).
+  # `lost` usa `lost_at` (fixed once via callback) em vez de `updated_at`
+  # (varia em qualquer edit subsequente).
+  def agent_aggregates(range)
+    {
+      assigned_by_user: opportunities_scope.where(created_at: range).group(:assignee_id).count,
+      won_count_by_user: opportunities_scope.where(status: :won, won_at: range).group(:assignee_id).count,
+      won_value_by_user: opportunities_scope.where(status: :won, won_at: range).group(:assignee_id).sum(:value),
+      lost_count_by_user: opportunities_scope.where(status: :lost, lost_at: range).group(:assignee_id).count
     }
   end
 
